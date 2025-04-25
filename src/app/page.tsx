@@ -71,7 +71,10 @@ const InteractiveBoard = () => {
         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
         cursor: 'pointer',
         transition: 'all 0.3s ease',
-        position: 'relative',
+        position: 'absolute', // Absolute positioning
+        top: '50%',         // Center vertically
+        left: '50%',        // Center horizontally
+        transform: 'translate(-50%, -50%)', // Offset to truly center
         border: '2px solid',
         borderColor: pieceColor,
         backgroundColor: 'white', // Always white
@@ -107,6 +110,7 @@ const InteractiveBoard = () => {
     let cellStyle = {
       width: '50px',
       height: '50px',
+      position: 'relative', // Relative positioning for the cell
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
