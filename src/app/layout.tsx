@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Xiangqi Master',
-  description: 'Master the art of Chinese Chess',
+  title: 'General Xiang: Learn Chinese Chess & Play Opponents Across the Globe',
+  description: 'Learn the ancient game of Chinese Chess and connect with players worldwide',
 };
 
 export default function RootLayout({
