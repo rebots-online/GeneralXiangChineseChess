@@ -101,6 +101,56 @@ const InteractiveBoard = () => {
     );
   };
 
+  const getCellStyle = (rowIndex: number, colIndex: number) => {
+    let borderStyle = '1px solid';
+    let borderColor = 'hsl(var(--border))';
+    let cellStyle = {
+      width: '50px',
+      height: '50px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: borderStyle,
+      borderColor: borderColor,
+    };
+
+    // River boundaries (rows 4 and 5)
+    if (rowIndex === 4 || rowIndex === 5) {
+      borderStyle = '2px dashed';
+      borderColor = 'hsl(146, 100%, 32.7%)'; //Jade Green
+      cellStyle = {
+        ...cellStyle,
+        borderTop: borderStyle,
+        borderBottom: borderStyle,
+        borderColor: borderColor,
+      };
+    }
+
+    // Palace boundaries
+    if ((rowIndex >= 0 && rowIndex <= 2 && colIndex >= 3 && colIndex <= 5) ||
+        (rowIndex >= 7 && rowIndex <= 9 && colIndex >= 3 && colIndex <= 5)) {
+      let palaceBorderStyle = '3px dotted';
+      let palaceBorderColor = 'hsl(5, 100%, 27.3%)'; //Deep Red
+
+      if (rowIndex === 1 && colIndex === 4) {
+        cellStyle = {
+          ...cellStyle,
+          border: palaceBorderStyle,
+          borderColor: palaceBorderColor,
+        };
+      }
+      if (rowIndex === 8 && colIndex === 4) {
+        cellStyle = {
+          ...cellStyle,
+          border: palaceBorderStyle,
+          borderColor: palaceBorderColor,
+        };
+      }
+    }
+
+    return cellStyle;
+  };
+
   return (
     <>
       <div className="flex justify-end">
@@ -113,7 +163,8 @@ const InteractiveBoard = () => {
           row.map((piece, colIndex) => (
             <div
               key={`${rowIndex}-${colIndex}`}
-              className="w-[50px] h-[50px] flex items-center justify-center border"
+              className="w-[50px] h-[50px] flex items-center justify-center"
+              style={getCellStyle(rowIndex, colIndex)}
             >
               {renderPiece(piece, rowIndex, colIndex)}
             </div>
