@@ -39,6 +39,20 @@ const initialBoardState = [
 
 const InteractiveBoard = () => {
   const [board, setBoard] = useState(initialBoardState);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Check local storage for dark mode preference on mount
+    const storedTheme = localStorage.getItem('theme');
+    setIsDarkMode(storedTheme === 'dark');
+  }, []);
+
+  // Function to toggle dark mode
+  const toggleTheme = () => {
+    const newTheme = !isDarkMode;
+    setIsDarkMode(newTheme);
+    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+  };
 
   const handlePieceClick = (row: number, col: number) => {
     alert(`Clicked on piece at row ${row}, col ${col}`);
@@ -46,47 +60,85 @@ const InteractiveBoard = () => {
 
   const renderPiece = (piece: string, row: number, col: number) => {
     const isRedPiece = row < 5; // Red pieces are on the top half of the board
-    const pieceColor = isRedPiece ? 'text-red-500' : 'text-blue-500';
+    const pieceColor = isRedPiece
+      ? isDarkMode
+        ? 'text-red-300'
+        : 'text-red-500'
+      : isDarkMode
+        ? 'text-blue-300'
+        : 'text-blue-500';
+
+    // Define a base class and add conditional styles
+    const baseChipClass = 'chip flex items-center justify-center rounded-full';
+    const colorChipClass = isRedPiece
+      ? isDarkMode
+        ? 'bg-red-700 shadow-red-900'
+        : 'bg-red-500 shadow-red-700'
+      : isDarkMode
+        ? 'bg-blue-700 shadow-blue-900'
+        : 'bg-blue-500 shadow-blue-700';
+
+    const themeClass = isDarkMode ? 'dark' : 'light'; // Add theme class
 
     return (
-      <span key={`${row}-${col}`} style={pieceStyle} className={`${pieceColor} piece`}>
-        {piece}
-      </span>
+      <div
+        key={`${row}-${col}`}
+        className={`${baseChipClass} ${colorChipClass} ${themeClass}`}
+        style={pieceStyle}
+        onClick={() => handlePieceClick(row, col)}
+      >
+        <span className={`${pieceColor} piece`}>{piece}</span>
+      </div>
     );
   };
 
   return (
-    <div className="grid gap-0" style={{gridTemplateColumns: 'repeat(9, 50px)'}}>
-      {board.map((row, rowIndex) =>
-        row.map((piece, colIndex) => (
-          <div
-            key={`${rowIndex}-${colIndex}`}
-            className="w-[50px] h-[50px] flex items-center justify-center border"
-            onClick={() => handlePieceClick(rowIndex, colIndex)}
-          >
-            {renderPiece(piece, rowIndex, colIndex)}
-          </div>
-        ))
-      )}
-      <style jsx>{`
-        .piece {
-          text-shadow: 1px 1px 2px black;
-          position: relative;
-        }
+    <>
+      <div className="flex justify-end">
+        <Button onClick={toggleTheme}>
+          {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+        </Button>
+      </div>
+      <div className="grid gap-0" style={{gridTemplateColumns: 'repeat(9, 50px)'}}>
+        {board.map((row, rowIndex) =>
+          row.map((piece, colIndex) => (
+            <div
+              key={`${rowIndex}-${colIndex}`}
+              className="w-[50px] h-[50px] flex items-center justify-center border"
+            >
+              {renderPiece(piece, rowIndex, colIndex)}
+            </div>
+          ))
+        )}
+        <style jsx>{`
+          .chip {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+          }
 
-        .piece::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          opacity: 0.3;
-          z-index: -1;
-        }
-      `}</style>
-    </div>
+          .chip:active {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            transform: translateY(1px);
+          }
+
+          .piece {
+            position: relative;
+            z-index: 1;
+          }
+        `}</style>
+      </div>
+    </>
   );
 };
 
