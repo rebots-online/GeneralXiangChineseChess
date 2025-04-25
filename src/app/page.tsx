@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import {useEffect, useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {
@@ -16,12 +16,10 @@ import {
   SidebarProvider,
   SidebarSeparator,
   SidebarTrigger,
-  SidebarInset, // Import SidebarInset
 } from '@/components/ui/sidebar';
-import {useEffect, useState} from 'react';
 
 const pieceStyle = {
-  fontSize: '2em', // Adjust the size as needed
+  fontSize: '2em',
   textAlign: 'center',
   lineHeight: '1.5em',
 };
@@ -42,9 +40,19 @@ const initialBoardState = [
 const InteractiveBoard = () => {
   const [board, setBoard] = useState(initialBoardState);
 
-  // Placeholder for move logic
   const handlePieceClick = (row: number, col: number) => {
     alert(`Clicked on piece at row ${row}, col ${col}`);
+  };
+
+  const renderPiece = (piece: string, row: number, col: number) => {
+    const isRedPiece = row < 5; // Red pieces are on the top half of the board
+    const pieceColor = isRedPiece ? 'text-red-500' : 'text-blue-500';
+
+    return (
+      <span key={`${row}-${col}`} style={pieceStyle} className={`${pieceColor} piece`}>
+        {piece}
+      </span>
+    );
   };
 
   return (
@@ -56,10 +64,28 @@ const InteractiveBoard = () => {
             className="w-[50px] h-[50px] flex items-center justify-center border"
             onClick={() => handlePieceClick(rowIndex, colIndex)}
           >
-            <span style={pieceStyle}>{piece}</span>
+            {renderPiece(piece, rowIndex, colIndex)}
           </div>
         ))
       )}
+      <style jsx>{`
+        .piece {
+          text-shadow: 1px 1px 2px black;
+          position: relative;
+        }
+
+        .piece::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          opacity: 0.3;
+          z-index: -1;
+        }
+      `}</style>
     </div>
   );
 };
@@ -84,7 +110,6 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
-    // Load the sidebar state from localStorage when the component mounts
     const storedState = localStorage.getItem('sidebarState');
     if (storedState) {
       setIsSidebarOpen(JSON.parse(storedState));
@@ -92,7 +117,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Save the sidebar state to localStorage whenever it changes
     localStorage.setItem('sidebarState', JSON.stringify(isSidebarOpen));
   }, [isSidebarOpen]);
 
@@ -158,31 +182,29 @@ export default function Home() {
             </p>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="p-4">
-          <main className="container mx-auto mt-8 flex flex-col gap-4">
-            <h1 className="scroll-m-20 pb-2 text-3xl font-semibold tracking-tight transition-colors first:mt-0">
-              Welcome to Xiangqi Master
-            </h1>
-            <p className="text-muted-foreground">Sharpen your skills in the ancient game of Chinese Chess.</p>
+        <main className="container mx-auto mt-8 flex flex-col gap-4 p-4">
+          <h1 className="scroll-m-20 pb-2 text-3xl font-semibold tracking-tight transition-colors first:mt-0">
+            Welcome to Xiangqi Master
+          </h1>
+          <p className="text-muted-foreground">Sharpen your skills in the ancient game of Chinese Chess.</p>
 
-            <InteractiveBoard/>
+          <InteractiveBoard/>
 
-            <section className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <TutorialCard
-                title="Basic Rules"
-                description="Learn the fundamental rules of Xiangqi, including piece movements and board setup."
-              />
-              <TutorialCard
-                title="Opening Strategies"
-                description="Discover effective opening strategies to gain an early advantage."
-              />
-              <TutorialCard
-                title="Advanced Tactics"
-                description="Explore advanced tactics and strategies to outmaneuver your opponents."
-              />
-            </section>
-          </main>
-        </SidebarInset>
+          <section className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <TutorialCard
+              title="Basic Rules"
+              description="Learn the fundamental rules of Xiangqi, including piece movements and board setup."
+            />
+            <TutorialCard
+              title="Opening Strategies"
+              description="Discover effective opening strategies to gain an early advantage."
+            />
+            <TutorialCard
+              title="Advanced Tactics"
+              description="Explore advanced tactics and strategies to outmaneuver your opponents."
+            />
+          </section>
+        </main>
       </div>
     </SidebarProvider>
   );
