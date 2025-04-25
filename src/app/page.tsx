@@ -20,15 +20,49 @@ import {
 } from '@/components/ui/sidebar';
 import {useEffect, useState} from 'react';
 
-const PlaceholderBoard = () => (
-  <Image
-    src="https://picsum.photos/400/300"
-    alt="Placeholder Xiangqi Board"
-    width={400}
-    height={300}
-    className="rounded-md shadow-md"
-  />
-);
+const pieceStyle = {
+  fontSize: '2em', // Adjust the size as needed
+  textAlign: 'center',
+  lineHeight: '1.5em',
+};
+
+const initialBoardState = [
+  ['車', '馬', '象', '士', '將', '士', '象', '馬', '車'],
+  ['-', '-', '-', '-', '-', '-', '-', '-', '-'],
+  ['-', '炮', '-', '-', '-', '-', '-', '炮', '-'],
+  ['卒', '-', '卒', '-', '卒', '-', '卒', '-', '卒'],
+  ['-', '-', '-', '-', '-', '-', '-', '-', '-'],
+  ['-', '-', '-', '-', '-', '-', '-', '-', '-'],
+  ['兵', '-', '兵', '-', '兵', '-', '兵', '-', '兵'],
+  ['-', '砲', '-', '-', '-', '-', '-', '砲', '-'],
+  ['-', '-', '-', '-', '-', '-', '-', '-', '-'],
+  ['俥', '傌', '相', '仕', '帥', '仕', '相', '傌', '俥'],
+];
+
+const InteractiveBoard = () => {
+  const [board, setBoard] = useState(initialBoardState);
+
+  // Placeholder for move logic
+  const handlePieceClick = (row: number, col: number) => {
+    alert(`Clicked on piece at row ${row}, col ${col}`);
+  };
+
+  return (
+    <div className="grid gap-0" style={{gridTemplateColumns: 'repeat(9, 50px)'}}>
+      {board.map((row, rowIndex) =>
+        row.map((piece, colIndex) => (
+          <div
+            key={`${rowIndex}-${colIndex}`}
+            className="w-[50px] h-[50px] flex items-center justify-center border"
+            onClick={() => handlePieceClick(rowIndex, colIndex)}
+          >
+            <span style={pieceStyle}>{piece}</span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
 
 const TutorialCard = ({title, description}: { title: string, description: string }) => (
   <Card className="w-full">
@@ -131,7 +165,7 @@ export default function Home() {
             </h1>
             <p className="text-muted-foreground">Sharpen your skills in the ancient game of Chinese Chess.</p>
 
-            <PlaceholderBoard/>
+            <InteractiveBoard/>
 
             <section className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               <TutorialCard
