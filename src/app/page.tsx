@@ -18,12 +18,6 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 
-const pieceStyle = {
-  fontSize: '2em',
-  textAlign: 'center',
-  lineHeight: '1.5em',
-};
-
 const initialBoardState = [
   ['車', '馬', '象', '士', '將', '士', '象', '馬', '車'],
   ['-', '-', '-', '-', '-', '-', '-', '-', '-'],
@@ -42,12 +36,10 @@ const InteractiveBoard = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
-    // Check local storage for dark mode preference on mount
     const storedTheme = localStorage.getItem('theme');
     setIsDarkMode(storedTheme === 'dark');
   }, []);
 
-  // Function to toggle dark mode
   const toggleTheme = () => {
     const newTheme = !isDarkMode;
     setIsDarkMode(newTheme);
@@ -59,35 +51,58 @@ const InteractiveBoard = () => {
   };
 
   const renderPiece = (piece: string, row: number, col: number) => {
-    const isRedPiece = row < 5; // Red pieces are on the top half of the board
-    const pieceColor = isRedPiece
-      ? isDarkMode
-        ? 'text-red-300'
-        : 'text-red-500'
-      : isDarkMode
-        ? 'text-blue-300'
-        : 'text-blue-500';
+    if (piece === '-') {
+      return null;
+    }
 
-    // Define a base class and add conditional styles
-    const baseChipClass = 'chip flex items-center justify-center rounded-full';
-    const colorChipClass = isRedPiece
-      ? isDarkMode
-        ? 'bg-red-700 shadow-red-900'
-        : 'bg-red-500 shadow-red-700'
-      : isDarkMode
-        ? 'bg-blue-700 shadow-blue-900'
-        : 'bg-blue-500 shadow-blue-700';
+    const isRedPiece = row < 5;
+    const pieceColor = isRedPiece ? 'red' : 'blue';
 
-    const themeClass = isDarkMode ? 'dark' : 'light'; // Add theme class
+    const getChipStyle = () => {
+      const baseStyle = {
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '1.2em',
+        textShadow: '1px 1px 2px black',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        position: 'relative',
+        border: '2px solid',
+        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
+        backgroundColor: isDarkMode
+          ? isRedPiece
+            ? 'rgba(255, 0, 0, 0.3)'
+            : 'rgba(0, 0, 255, 0.3)'
+          : isRedPiece
+            ? 'rgba(255, 0, 0, 0.5)'
+            : 'rgba(0, 0, 255, 0.5)',
+        color: isDarkMode ? 'white' : 'black',
+      };
+      return baseStyle;
+    };
+
+    const getTextStyle = () => {
+      return {
+        position: 'relative',
+        zIndex: 1,
+        WebkitTextStroke: `1px ${pieceColor}`,
+        color: isDarkMode ? 'white' : 'black',
+        fontFamily: 'serif',
+      };
+    };
 
     return (
       <div
         key={`${row}-${col}`}
-        className={`${baseChipClass} ${colorChipClass} ${themeClass}`}
-        style={pieceStyle}
+        style={getChipStyle()}
         onClick={() => handlePieceClick(row, col)}
       >
-        <span className={`${pieceColor} piece`}>{piece}</span>
+        <span style={getTextStyle()}>{piece}</span>
       </div>
     );
   };
@@ -110,33 +125,6 @@ const InteractiveBoard = () => {
             </div>
           ))
         )}
-        <style jsx>{`
-          .chip {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2em;
-            color: white;
-            text-shadow: 1px 1px 2px black;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-          }
-
-          .chip:active {
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            transform: translateY(1px);
-          }
-
-          .piece {
-            position: relative;
-            z-index: 1;
-          }
-        `}</style>
       </div>
     </>
   );
