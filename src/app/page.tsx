@@ -56,7 +56,7 @@ const InteractiveBoard = () => {
     }
 
     const isRedPiece = row < 5;
-    const pieceColor = isRedPiece ? 'red' : 'blue';
+    const pieceColor = isRedPiece ? 'hsl(5, 100%, 27.3%)' : 'hsl(197, 37%, 24%)'; // Deep Red and Dark Blue
 
     const getChipStyle = () => {
       const baseStyle = {
@@ -73,15 +73,9 @@ const InteractiveBoard = () => {
         transition: 'all 0.3s ease',
         position: 'relative',
         border: '2px solid',
-        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
-        backgroundColor: isDarkMode
-          ? isRedPiece
-            ? 'rgba(255, 0, 0, 0.3)'
-            : 'rgba(0, 0, 255, 0.3)'
-          : isRedPiece
-            ? 'rgba(255, 0, 0, 0.5)'
-            : 'rgba(0, 0, 255, 0.5)',
-        color: isDarkMode ? 'white' : 'black',
+        borderColor: pieceColor,
+        backgroundColor: 'white', // Always white
+        color: pieceColor, // Character color
       };
       return baseStyle;
     };
@@ -91,7 +85,7 @@ const InteractiveBoard = () => {
         position: 'relative',
         zIndex: 1,
         WebkitTextStroke: `1px ${pieceColor}`,
-        color: isDarkMode ? 'white' : 'black',
+        color: pieceColor,
         fontFamily: 'serif',
       };
     };
