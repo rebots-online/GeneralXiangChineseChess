@@ -231,7 +231,7 @@ export default function Home() {
               <div className="flex flex-col gap-2 w-full">
                 <div className="flex items-center justify-between w-full">
                   <p className="text-xs text-muted-foreground">
-                    © 2025 General Xiang
+                    © 2025 Robin L. M. Cheung, MBA
                   </p>
                   <SidebarTrigger>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-panel-left-close">

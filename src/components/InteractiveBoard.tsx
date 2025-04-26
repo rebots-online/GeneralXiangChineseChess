@@ -479,7 +479,7 @@ const InteractiveBoard: React.FC = () => {
     const isValidMove = gameState.board.validMoves.some(([r, c]) => r === row && c === col);
 
     const getChipStyle = () => {
-      const baseStyle = {
+      const baseStyle: React.CSSProperties = {
         width: '36px',
         height: '36px',
         borderRadius: '50%',
@@ -505,7 +505,7 @@ const InteractiveBoard: React.FC = () => {
     };
 
     const getTextStyle = () => {
-      return {
+      const textStyle: React.CSSProperties = {
         position: 'relative',
         zIndex: 1,
         WebkitTextStroke: `1px ${pieceColor}`,
@@ -513,6 +513,7 @@ const InteractiveBoard: React.FC = () => {
         fontFamily: 'serif',
         fontWeight: 'bold',
       };
+      return textStyle;
     };
 
     return (
@@ -526,9 +527,9 @@ const InteractiveBoard: React.FC = () => {
     );
   };
 
-  const getCellStyle = (rowIndex: number, colIndex: number) => {
+  const getCellStyle = (rowIndex: number, colIndex: number): React.CSSProperties => {
     // Base cell style - now represents an intersection point rather than a square
-    let cellStyle = {
+    let cellStyle: React.CSSProperties = {
       width: '50px',
       height: '50px',
       position: 'relative', // Relative positioning for the cell
@@ -779,85 +780,60 @@ const InteractiveBoard: React.FC = () => {
         margin: '0 auto'
       }}>
         <div className="relative" style={{ width: 'fit-content', margin: '0 auto' }}>
-          {/* Palace diagonal lines */}
+          {/* Palace diagonal lines - corrected implementation */}
           <div className="absolute" style={{
             top: '0',
             left: '0',
             width: '450px',
             height: '500px',
-            zIndex: 2, /* Increased z-index to ensure it's above the board but below pieces */
+            zIndex: 2,
             pointerEvents: 'none'
           }}>
-            {/* Palace diagonals */}
-            <svg width="450" height="500" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-              {/* Palace coordinates explanation:
-                - Each cell is 50x50 pixels
-                - Top palace spans from row 0 to row 2, and column 3 to column 5
-                - Bottom palace spans from row 7 to row 9, and column 3 to column 5
-                - Column 3 starts at x=150px (3*50px)
-                - Column 5 ends at x=250px (5*50px)
-                - Row 0 starts at y=0px
-                - Row 2 ends at y=100px (2*50px)
-                - Row 7 starts at y=350px (7*50px)
-                - Row 9 ends at y=450px (9*50px)
-              */}
+            {/* Top Palace */}
+            <div style={{
+              position: 'absolute',
+              top: '0px',
+              left: '150px',
+              width: '100px', /* Corrected: 2 cells wide (2*50px) */
+              height: '100px', /* Corrected: 2 cells tall (2*50px) */
+              border: `1px solid ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}`,
+              pointerEvents: 'none'
+            }}>
+              {/* Top Palace Diagonals */}
+              <div style={{
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                width: '100%',
+                height: '100%',
+                backgroundImage: `linear-gradient(to bottom right, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+                                 linear-gradient(to bottom left, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px))`,
+                pointerEvents: 'none'
+              }}></div>
+            </div>
 
-              {/* Top Palace */}
-              <g>
-                {/* Top Palace Border */}
-                <rect
-                  x="150" y="0"
-                  width="100" height="100"
-                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
-                  strokeWidth="2"
-                  fill="none"
-                />
-
-                {/* Top Palace Diagonals */}
-                <line
-                  x1="150" y1="0"
-                  x2="250" y2="100"
-                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-                <line
-                  x1="250" y1="0"
-                  x2="150" y2="100"
-                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-              </g>
-
-              {/* Bottom Palace */}
-              <g>
-                {/* Bottom Palace Border */}
-                <rect
-                  x="150" y="350"
-                  width="100" height="100"
-                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
-                  strokeWidth="2"
-                  fill="none"
-                />
-
-                {/* Bottom Palace Diagonals */}
-                <line
-                  x1="150" y1="350"
-                  x2="250" y2="450"
-                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-                <line
-                  x1="250" y1="350"
-                  x2="150" y2="450"
-                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-              </g>
-            </svg>
+            {/* Bottom Palace */}
+            <div style={{
+              position: 'absolute',
+              top: '350px', /* Row 7 starts at 350px (7*50px) */
+              left: '150px', /* Column 3 starts at 150px (3*50px) */
+              width: '100px', /* Corrected: 2 cells wide (2*50px) */
+              height: '100px', /* Corrected: 2 cells tall (2*50px) */
+              border: `1px solid ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}`,
+              pointerEvents: 'none'
+            }}>
+              {/* Bottom Palace Diagonals */}
+              <div style={{
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                width: '100%',
+                height: '100%',
+                backgroundImage: `linear-gradient(to bottom right, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+                                 linear-gradient(to bottom left, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px))`,
+                pointerEvents: 'none'
+              }}></div>
+            </div>
           </div>
 
           {/* River text */}

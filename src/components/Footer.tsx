@@ -11,7 +11,7 @@ const Footer: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
             <p className="text-sm text-muted-foreground">
-              © 2025 General Xiang: Learn Chinese Chess & Play Opponents Across the Globe
+              © 2025 Robin L. M. Cheung, MBA - General Xiang: Learn Chinese Chess & Play Opponents Across the Globe
             </p>
           </div>
           <PolicyLinks />

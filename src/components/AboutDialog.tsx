@@ -87,7 +87,7 @@ const AboutDialog = forwardRef((props, ref) => {
               </div>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              © 2025 General Xiang. All rights reserved.
+              © 2025 Robin L. M. Cheung, MBA. All rights reserved.
             </p>
           </TabsContent>
         </Tabs>
