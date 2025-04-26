@@ -120,17 +120,31 @@ const InteractiveBoard: React.FC = () => {
   // Handle multiplayer game functionality
   const [showJoinGameDialog, setShowJoinGameDialog] = useState(false);
   const [showHostGameDialog, setShowHostGameDialog] = useState(false);
+  const [showNewCodeConfirmation, setShowNewCodeConfirmation] = useState(false);
   const [gameCode, setGameCode] = useState('');
   const [generatedGameCode, setGeneratedGameCode] = useState('');
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [pasteSuccess, setPasteSuccess] = useState(false);
+
+  // Load saved game code from local storage on component mount
+  useEffect(() => {
+    const savedGameCode = localStorage.getItem('generalXiangHostCode');
+    if (savedGameCode) {
+      setGeneratedGameCode(savedGameCode);
+    } else {
+      // Generate a code if none exists
+      const newCode = generateGameCode();
+      setGeneratedGameCode(newCode);
+      localStorage.setItem('generalXiangHostCode', newCode);
+    }
+  }, []);
 
   const handleJoinGame = () => {
     setShowJoinGameDialog(true);
   };
 
   const handleHostGame = () => {
-    // Generate a unique game code
-    const randomCode = generateGameCode();
-    setGeneratedGameCode(randomCode);
+    // Use the existing code
     setShowHostGameDialog(true);
   };
 
@@ -142,6 +156,39 @@ const InteractiveBoard: React.FC = () => {
       result += validChars.charAt(Math.floor(Math.random() * validChars.length));
     }
     return result;
+  };
+
+  // Generate a new game code and save it to local storage
+  const generateNewGameCode = () => {
+    const randomCode = generateGameCode();
+    setGeneratedGameCode(randomCode);
+    localStorage.setItem('generalXiangHostCode', randomCode);
+    setShowNewCodeConfirmation(false);
+  };
+
+  // Copy game code to clipboard
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatedGameCode)
+      .then(() => {
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy text: ', err);
+      });
+  };
+
+  // Paste from clipboard to game code input
+  const pasteFromClipboard = () => {
+    navigator.clipboard.readText()
+      .then(text => {
+        setGameCode(text.trim());
+        setPasteSuccess(true);
+        setTimeout(() => setPasteSuccess(false), 2000);
+      })
+      .catch(err => {
+        console.error('Failed to paste text: ', err);
+      });
   };
 
   const confirmJoinGame = () => {
@@ -588,12 +635,16 @@ const InteractiveBoard: React.FC = () => {
             {/* Palace diagonals */}
             <svg width="450" height="500" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
               {/* Top palace diagonal lines - connecting corners of the 3x3 palace */}
+              {/* Diagonal from top-left (col 3, row 0) to bottom-right (col 5, row 2) */}
+              {/* Coordinates: (150, 0) to (250, 100) */}
               <line
                 x1="150" y1="0"
                 x2="250" y2="100"
                 stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
                 strokeWidth="2"
               />
+              {/* Diagonal from top-right (col 5, row 0) to bottom-left (col 3, row 2) */}
+              {/* Coordinates: (250, 0) to (150, 100) */}
               <line
                 x1="250" y1="0"
                 x2="150" y2="100"
@@ -602,12 +653,16 @@ const InteractiveBoard: React.FC = () => {
               />
 
               {/* Bottom palace diagonal lines - connecting corners of the 3x3 palace */}
+              {/* Diagonal from top-left (col 3, row 7) to bottom-right (col 5, row 9) */}
+              {/* Coordinates: (150, 350) to (250, 450) */}
               <line
                 x1="150" y1="350"
                 x2="250" y2="450"
                 stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
                 strokeWidth="2"
               />
+              {/* Diagonal from top-right (col 5, row 7) to bottom-left (col 3, row 9) */}
+              {/* Coordinates: (250, 350) to (150, 450) */}
               <line
                 x1="250" y1="350"
                 x2="150" y2="450"
@@ -695,12 +750,37 @@ const InteractiveBoard: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
-            <Input
-              placeholder="Enter game code"
-              value={gameCode}
-              onChange={(e) => setGameCode(e.target.value)}
-              className="mb-2"
-            />
+            <div className="flex gap-2 mb-2">
+              <Input
+                placeholder="Enter game code"
+                value={gameCode}
+                onChange={(e) => setGameCode(e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                variant="outline"
+                onClick={pasteFromClipboard}
+                className="flex items-center gap-1"
+                title="Paste from clipboard"
+              >
+                {pasteSuccess ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-check">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Pasted
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-clipboard">
+                      <rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect>
+                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                    </svg>
+                    Paste
+                  </>
+                )}
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
               Game codes are provided by the host player when they start a multiplayer game.
             </p>
@@ -724,9 +804,48 @@ const InteractiveBoard: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
-            <div className="flex items-center justify-center mb-4">
-              <div className="text-2xl font-bold tracking-widest bg-muted p-4 rounded-md">
+            <div className="flex flex-col items-center justify-center mb-4">
+              <div className="text-2xl font-bold tracking-widest bg-muted p-4 rounded-md mb-2">
                 {generatedGameCode}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={copyToClipboard}
+                  className="flex items-center gap-1"
+                  title="Copy to clipboard"
+                >
+                  {copySuccess ? (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-check">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy">
+                        <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+                      </svg>
+                      Copy Code
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNewCodeConfirmation(true)}
+                  className="flex items-center gap-1"
+                  title="Generate a new code"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-refresh-cw">
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                    <path d="M21 3v5h-5"></path>
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                    <path d="M3 21v-5h5"></path>
+                  </svg>
+                  New Code
+                </Button>
               </div>
             </div>
             <p className="text-xs text-muted-foreground text-center">
@@ -737,6 +856,24 @@ const InteractiveBoard: React.FC = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmHostGame}>
               Start Hosting
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* New Code Confirmation Dialog */}
+      <AlertDialog open={showNewCodeConfirmation} onOpenChange={setShowNewCodeConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Generate New Game Code?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will create a new game code. Anyone using your previous code will no longer be able to join your game.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={generateNewGameCode}>
+              Generate New Code
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
