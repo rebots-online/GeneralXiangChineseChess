@@ -1,14 +1,19 @@
-# General Xiang: Learn Chinese Chess & Play Opponents Across the Globe
+# General Zhang: Learn Chinese Chess & Play Opponents Across the Globe
 
-A modern implementation of the traditional Chinese Chess (Xiangqi) game, built with Next.js and Jami for peer-to-peer communication. Learn the ancient game of Chinese Chess and connect with players worldwide.
+A modern implementation of the traditional Chinese Chess (Xiangqi) game, built with Next.js and planned Jami integration for peer-to-peer communication. Learn the ancient game of Chinese Chess and connect with players worldwide.
 
 ## Features
 
 - Interactive Chinese Chess board with traditional piece designs
-- AI opponents with adjustable difficulty levels
-- Peer-to-peer multiplayer using Jami
-- Interactive tutorials and learning resources
-- Subscription tiers with RevenueCat integration
+- Authentic board layout with pieces positioned on intersections
+- Proper palace diagonals and river boundary markings
+- Dark/light mode theme support
+- Planned features:
+  - AI opponents with adjustable difficulty levels
+  - Peer-to-peer multiplayer using Jami
+  - Interactive tutorials and learning resources
+  - Subscription tiers with RevenueCat integration
+  - Integration with shared avatar system
 
 ## Development
 
@@ -37,9 +42,18 @@ All documentation follows the format:
 `DOCUMENT-TYPE-ProjectName-v#-DayDDmmmYYYY-HHhMM.md`
 
 For example:
-- `ARCHITECTURE-GeneralXiang-v1-Sat26apr2025-06h30.md`
-- `GAMES-BILLING-REVENUECAT-MODULES-v1-Sat26apr2025-06h23.md`
+
+- `ARCHITECTURE-GeneralZhang-v1-Sat13apr2025-14h30.md`
+- `ROADMAP-GeneralZhang-v1-Sat13apr2025-14h35.md`
+- `CHECKLIST-GeneralZhang-v1-Sat13apr2025-14h40.md`
 
 ## Architecture
 
-General Xiang follows the same architecture as MahCheungg, using Jami for both player communication and game state transport. See the documentation in the `docs/architecture/` directory for more details.
+General Zhang follows a client-side architecture with Next.js, with plans for peer-to-peer multiplayer functionality using Jami for decentralized communication. The game features:
+
+- SVG-based board rendering with proper Xiangqi layout
+- TypeScript implementation of game rules and logic
+- React component-based UI with Shadcn UI elements
+- Planned integration with shared platform services
+
+See the documentation in the `docs/architecture/` directory for more details.
