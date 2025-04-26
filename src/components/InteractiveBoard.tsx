@@ -76,6 +76,8 @@ const InteractiveBoard: React.FC = () => {
   const handleUndoMove = () => {
     const newGameState = undoMove(gameState);
     setGameState(newGameState);
+    // Play undo sound
+    Feedback.buttonClick();
   };
 
   const handleSaveGame = () => {
@@ -250,6 +252,9 @@ const InteractiveBoard: React.FC = () => {
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
 
+        // Play copy sound
+        Feedback.copy();
+
         // Show toast notification
         toast({
           title: "Copied to clipboard",
@@ -259,6 +264,9 @@ const InteractiveBoard: React.FC = () => {
       })
       .catch(err => {
         console.error('Failed to copy text: ', err);
+
+        // Play error sound
+        Feedback.error();
 
         // Show error toast
         toast({
@@ -279,6 +287,9 @@ const InteractiveBoard: React.FC = () => {
         setPasteSuccess(true);
         setTimeout(() => setPasteSuccess(false), 2000);
 
+        // Play paste sound
+        Feedback.paste();
+
         // Show toast notification
         toast({
           title: "Pasted from clipboard",
@@ -295,6 +306,9 @@ const InteractiveBoard: React.FC = () => {
       })
       .catch(err => {
         console.error('Failed to paste text: ', err);
+
+        // Play error sound
+        Feedback.error();
 
         // Show error toast
         toast({
