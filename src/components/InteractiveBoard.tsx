@@ -25,12 +25,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 const InteractiveBoard: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(initializeGameState());
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showNewGameDialog, setShowNewGameDialog] = useState(false);
   const [showSaveGameDialog, setShowSaveGameDialog] = useState(false);
+  const { toast } = useToast();
 
   // Define game control functions first
   const handleNewGame = () => {
@@ -38,16 +40,32 @@ const InteractiveBoard: React.FC = () => {
     if (gameState.moveHistory.length > 0) {
       setShowNewGameDialog(true);
     } else {
-      // If no moves have been made, start a new game immediately
-      const newGameState = startGame(initializeGameState());
-      setGameState(newGameState);
+      // If no moves have been made, prompt for player names first
+      setShowPlayerNameDialog(true);
     }
   };
 
-  const confirmNewGame = () => {
+  const startNewGameWithNames = () => {
+    // Start a new game with the entered player names
     const newGameState = startGame(initializeGameState());
     setGameState(newGameState);
+    setShowPlayerNameDialog(false);
+
+    // Save player names to localStorage
+    localStorage.setItem('redPlayerName', redPlayerName);
+    localStorage.setItem('blackPlayerName', blackPlayerName);
+
+    toast({
+      title: "Game Started",
+      description: `${redPlayerName} vs ${blackPlayerName}`,
+      duration: 3000,
+    });
+  };
+
+  const confirmNewGame = () => {
     setShowNewGameDialog(false);
+    // Show player name dialog after confirming new game
+    setShowPlayerNameDialog(true);
   };
 
   const handleUndoMove = () => {
@@ -111,6 +129,18 @@ const InteractiveBoard: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
 
+    // Load saved player names if available
+    const savedRedName = localStorage.getItem('redPlayerName');
+    const savedBlackName = localStorage.getItem('blackPlayerName');
+
+    if (savedRedName) {
+      setRedPlayerName(savedRedName);
+    }
+
+    if (savedBlackName) {
+      setBlackPlayerName(savedBlackName);
+    }
+
     // Start the game
     setGameState(startGame(gameState));
   }, []);
@@ -121,10 +151,17 @@ const InteractiveBoard: React.FC = () => {
   const [showJoinGameDialog, setShowJoinGameDialog] = useState(false);
   const [showHostGameDialog, setShowHostGameDialog] = useState(false);
   const [showNewCodeConfirmation, setShowNewCodeConfirmation] = useState(false);
+  const [showPlayerNameDialog, setShowPlayerNameDialog] = useState(false);
   const [gameCode, setGameCode] = useState('');
   const [generatedGameCode, setGeneratedGameCode] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [pasteSuccess, setPasteSuccess] = useState(false);
+
+  // Player information
+  const [redPlayerName, setRedPlayerName] = useState('Red Player');
+  const [blackPlayerName, setBlackPlayerName] = useState('Blue Player');
+  const [currentPlayerName, setCurrentPlayerName] = useState('');
+  const [playerSide, setPlayerSide] = useState<PlayerSide | null>(null);
 
   // Load saved game code from local storage on component mount
   useEffect(() => {
@@ -141,6 +178,28 @@ const InteractiveBoard: React.FC = () => {
 
   const handleJoinGame = () => {
     setShowJoinGameDialog(true);
+
+    // Check clipboard for game code when dialog opens
+    navigator.clipboard.readText()
+      .then(text => {
+        const trimmedText = text.trim();
+        // If clipboard contains what looks like a game code (6 characters), auto-paste it
+        if (trimmedText.length === 6) {
+          setGameCode(trimmedText);
+          setPasteSuccess(true);
+          setTimeout(() => setPasteSuccess(false), 2000);
+
+          toast({
+            title: "Code detected",
+            description: "Game code found in clipboard and auto-pasted",
+            duration: 2000,
+          });
+        }
+      })
+      .catch(err => {
+        // Silently fail - no need to show error for this automatic check
+        console.log('Could not read clipboard automatically');
+      });
   };
 
   const handleHostGame = () => {
@@ -172,9 +231,24 @@ const InteractiveBoard: React.FC = () => {
       .then(() => {
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
+
+        // Show toast notification
+        toast({
+          title: "Copied to clipboard",
+          description: "Game code has been copied to your clipboard",
+          duration: 2000,
+        });
       })
       .catch(err => {
         console.error('Failed to copy text: ', err);
+
+        // Show error toast
+        toast({
+          title: "Copy failed",
+          description: "Could not copy to clipboard. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
       });
   };
 
@@ -182,12 +256,35 @@ const InteractiveBoard: React.FC = () => {
   const pasteFromClipboard = () => {
     navigator.clipboard.readText()
       .then(text => {
-        setGameCode(text.trim());
+        const trimmedText = text.trim();
+        setGameCode(trimmedText);
         setPasteSuccess(true);
         setTimeout(() => setPasteSuccess(false), 2000);
+
+        // Show toast notification
+        toast({
+          title: "Pasted from clipboard",
+          description: "Game code has been pasted from your clipboard",
+          duration: 2000,
+        });
+
+        // If the pasted code is valid (6 characters), automatically proceed after a short delay
+        if (trimmedText.length === 6) {
+          setTimeout(() => {
+            confirmJoinGame();
+          }, 500);
+        }
       })
       .catch(err => {
         console.error('Failed to paste text: ', err);
+
+        // Show error toast
+        toast({
+          title: "Paste failed",
+          description: "Could not paste from clipboard. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
       });
   };
 
@@ -584,13 +681,13 @@ const InteractiveBoard: React.FC = () => {
         return "Game not started";
       case GameStatus.IN_PROGRESS:
         if (gameState.check) {
-          return `${gameState.currentTurn === PlayerSide.RED ? 'Blue' : 'Red'} is in check!`;
+          return `${gameState.currentTurn === PlayerSide.RED ? blackPlayerName : redPlayerName} is in check!`;
         }
-        return `${gameState.currentTurn === PlayerSide.RED ? 'Red' : 'Blue'}'s turn`;
+        return `${gameState.currentTurn === PlayerSide.RED ? redPlayerName : blackPlayerName}'s turn`;
       case GameStatus.RED_WON:
-        return "Red wins!";
+        return `${redPlayerName} wins!`;
       case GameStatus.BLACK_WON:
-        return "Blue wins!";
+        return `${blackPlayerName} wins!`;
       case GameStatus.DRAW:
         return "Game ended in a draw";
       default:
@@ -600,20 +697,55 @@ const InteractiveBoard: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-row justify-between items-center gap-2">
-        <div className="text-base sm:text-lg font-semibold">
-          {getGameStatusMessage()}
+      {/* Player info and game status */}
+      <div className="flex flex-col gap-2 sm:gap-4">
+        {/* Player info cards */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-4">
+          {/* Red player card */}
+          <div className={`p-2 sm:p-3 rounded-md border ${gameState.currentTurn === PlayerSide.RED ? 'border-red-800 bg-red-50 dark:bg-red-950' : 'border-gray-200 dark:border-gray-700'}`}>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-red-800"></div>
+              <div className="flex-1 truncate">
+                <h3 className="text-sm sm:text-base font-semibold truncate">{redPlayerName}</h3>
+                <p className="text-xs text-muted-foreground">Red Side</p>
+              </div>
+              {gameState.currentTurn === PlayerSide.RED && (
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              )}
+            </div>
+          </div>
+
+          {/* Blue player card */}
+          <div className={`p-2 sm:p-3 rounded-md border ${gameState.currentTurn === PlayerSide.BLACK ? 'border-blue-800 bg-blue-50 dark:bg-blue-950' : 'border-gray-200 dark:border-gray-700'}`}>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-blue-800"></div>
+              <div className="flex-1 truncate">
+                <h3 className="text-sm sm:text-base font-semibold truncate">{blackPlayerName}</h3>
+                <p className="text-xs text-muted-foreground">Blue Side</p>
+              </div>
+              {gameState.currentTurn === PlayerSide.BLACK && (
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2 ml-auto">
-          <Button size="icon" variant="outline" onClick={handleUndoMove} disabled={gameState.moveHistory.length === 0}
-            title="Undo Move" aria-label="Undo Move">
-            <Undo className="h-4 w-4" />
-          </Button>
-          <Button size="icon" variant="outline" onClick={toggleTheme}
-            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            aria-label={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}>
-            {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
+
+        {/* Game status and controls */}
+        <div className="flex flex-row justify-between items-center gap-2">
+          <div className="text-base sm:text-lg font-semibold">
+            {getGameStatusMessage()}
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button size="icon" variant="outline" onClick={handleUndoMove} disabled={gameState.moveHistory.length === 0}
+              title="Undo Move" aria-label="Undo Move">
+              <Undo className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="outline" onClick={toggleTheme}
+              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}>
+              {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -635,8 +767,20 @@ const InteractiveBoard: React.FC = () => {
             {/* Palace diagonals */}
             <svg width="450" height="500" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
               {/* Top palace diagonal lines - connecting corners of the 3x3 palace */}
+              {/*
+                Palace coordinates explanation:
+                - Each cell is 50x50 pixels
+                - Top palace spans from row 0 to row 2, and column 3 to column 5
+                - Bottom palace spans from row 7 to row 9, and column 3 to column 5
+                - Column 3 starts at x=150px (3*50px)
+                - Column 5 ends at x=250px (5*50px)
+                - Row 0 starts at y=0px
+                - Row 2 ends at y=100px (2*50px)
+                - Row 7 starts at y=350px (7*50px)
+                - Row 9 ends at y=450px (9*50px)
+              */}
+
               {/* Diagonal from top-left (col 3, row 0) to bottom-right (col 5, row 2) */}
-              {/* Coordinates: (150, 0) to (250, 100) */}
               <line
                 x1="150" y1="0"
                 x2="250" y2="100"
@@ -644,7 +788,6 @@ const InteractiveBoard: React.FC = () => {
                 strokeWidth="2"
               />
               {/* Diagonal from top-right (col 5, row 0) to bottom-left (col 3, row 2) */}
-              {/* Coordinates: (250, 0) to (150, 100) */}
               <line
                 x1="250" y1="0"
                 x2="150" y2="100"
@@ -654,7 +797,6 @@ const InteractiveBoard: React.FC = () => {
 
               {/* Bottom palace diagonal lines - connecting corners of the 3x3 palace */}
               {/* Diagonal from top-left (col 3, row 7) to bottom-right (col 5, row 9) */}
-              {/* Coordinates: (150, 350) to (250, 450) */}
               <line
                 x1="150" y1="350"
                 x2="250" y2="450"
@@ -662,7 +804,6 @@ const InteractiveBoard: React.FC = () => {
                 strokeWidth="2"
               />
               {/* Diagonal from top-right (col 5, row 7) to bottom-left (col 3, row 9) */}
-              {/* Coordinates: (250, 350) to (150, 450) */}
               <line
                 x1="250" y1="350"
                 x2="150" y2="450"
@@ -874,6 +1015,55 @@ const InteractiveBoard: React.FC = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={generateNewGameCode}>
               Generate New Code
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Player Name Dialog */}
+      <AlertDialog open={showPlayerNameDialog} onOpenChange={setShowPlayerNameDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enter Player Names</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please enter names for both players.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="redPlayerName" className="text-sm font-medium flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-red-800"></div>
+                Red Player
+              </label>
+              <Input
+                id="redPlayerName"
+                placeholder="Enter red player's name"
+                value={redPlayerName}
+                onChange={(e) => setRedPlayerName(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="blackPlayerName" className="text-sm font-medium flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-blue-800"></div>
+                Blue Player
+              </label>
+              <Input
+                id="blackPlayerName"
+                placeholder="Enter blue player's name"
+                value={blackPlayerName}
+                onChange={(e) => setBlackPlayerName(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={startNewGameWithNames}
+              disabled={!redPlayerName.trim() || !blackPlayerName.trim()}
+            >
+              Start Game
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
