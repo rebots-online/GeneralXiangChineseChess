@@ -566,69 +566,15 @@ const InteractiveBoard: React.FC = () => {
       };
     }
 
-    // Palace boundaries
+    // Palace area - we're now drawing the palace borders with SVG
     if ((rowIndex >= 0 && rowIndex <= 2 && colIndex >= 3 && colIndex <= 5) ||
         (rowIndex >= 7 && rowIndex <= 9 && colIndex >= 3 && colIndex <= 5)) {
-      // Palace color based on dark mode
-      const palaceColor = isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'; // Deep Red
-
-      // Add thicker borders for palace
-      if (rowIndex === 0 && colIndex === 3) {
-        cellStyle = {
-          ...cellStyle,
-          borderLeft: `2px solid ${palaceColor}`,
-          borderTop: `2px solid ${palaceColor}`,
-        };
-      }
-      if (rowIndex === 0 && colIndex === 5) {
-        cellStyle = {
-          ...cellStyle,
-          borderRight: `2px solid ${palaceColor}`,
-          borderTop: `2px solid ${palaceColor}`,
-        };
-      }
-      if (rowIndex === 2 && colIndex === 3) {
-        cellStyle = {
-          ...cellStyle,
-          borderLeft: `2px solid ${palaceColor}`,
-          borderBottom: `2px solid ${palaceColor}`,
-        };
-      }
-      if (rowIndex === 2 && colIndex === 5) {
-        cellStyle = {
-          ...cellStyle,
-          borderRight: `2px solid ${palaceColor}`,
-          borderBottom: `2px solid ${palaceColor}`,
-        };
-      }
-      if (rowIndex === 7 && colIndex === 3) {
-        cellStyle = {
-          ...cellStyle,
-          borderLeft: `2px solid ${palaceColor}`,
-          borderTop: `2px solid ${palaceColor}`,
-        };
-      }
-      if (rowIndex === 7 && colIndex === 5) {
-        cellStyle = {
-          ...cellStyle,
-          borderRight: `2px solid ${palaceColor}`,
-          borderTop: `2px solid ${palaceColor}`,
-        };
-      }
-      if (rowIndex === 9 && colIndex === 3) {
-        cellStyle = {
-          ...cellStyle,
-          borderLeft: `2px solid ${palaceColor}`,
-          borderBottom: `2px solid ${palaceColor}`,
-        };
-      }
-      if (rowIndex === 9 && colIndex === 5) {
-        cellStyle = {
-          ...cellStyle,
-          borderRight: `2px solid ${palaceColor}`,
-          borderBottom: `2px solid ${palaceColor}`,
-        };
-      }
+      // We can add a subtle background color to the palace area if desired
+      // const palaceColor = isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'; // Deep Red
+      // cellStyle = {
+      //   ...cellStyle,
+      //   backgroundColor: `${palaceColor}10`, // Very subtle background color with 10% opacity
+      // };
     }
 
     // Highlight valid move positions
@@ -839,14 +785,12 @@ const InteractiveBoard: React.FC = () => {
             left: '0',
             width: '450px',
             height: '500px',
-            zIndex: 1,
+            zIndex: 2, /* Increased z-index to ensure it's above the board but below pieces */
             pointerEvents: 'none'
           }}>
             {/* Palace diagonals */}
             <svg width="450" height="500" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-              {/* Top palace diagonal lines - connecting corners of the 3x3 palace */}
-              {/*
-                Palace coordinates explanation:
+              {/* Palace coordinates explanation:
                 - Each cell is 50x50 pixels
                 - Top palace spans from row 0 to row 2, and column 3 to column 5
                 - Bottom palace spans from row 7 to row 9, and column 3 to column 5
@@ -858,36 +802,61 @@ const InteractiveBoard: React.FC = () => {
                 - Row 9 ends at y=450px (9*50px)
               */}
 
-              {/* Diagonal from top-left (col 3, row 0) to bottom-right (col 5, row 2) */}
-              <line
-                x1="150" y1="0"
-                x2="250" y2="100"
-                stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
-                strokeWidth="2"
-              />
-              {/* Diagonal from top-right (col 5, row 0) to bottom-left (col 3, row 2) */}
-              <line
-                x1="250" y1="0"
-                x2="150" y2="100"
-                stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
-                strokeWidth="2"
-              />
+              {/* Top Palace */}
+              <g>
+                {/* Top Palace Border */}
+                <rect
+                  x="150" y="0"
+                  width="100" height="100"
+                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
+                  strokeWidth="2"
+                  fill="none"
+                />
 
-              {/* Bottom palace diagonal lines - connecting corners of the 3x3 palace */}
-              {/* Diagonal from top-left (col 3, row 7) to bottom-right (col 5, row 9) */}
-              <line
-                x1="150" y1="350"
-                x2="250" y2="450"
-                stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
-                strokeWidth="2"
-              />
-              {/* Diagonal from top-right (col 5, row 7) to bottom-left (col 3, row 9) */}
-              <line
-                x1="250" y1="350"
-                x2="150" y2="450"
-                stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
-                strokeWidth="2"
-              />
+                {/* Top Palace Diagonals */}
+                <line
+                  x1="150" y1="0"
+                  x2="250" y2="100"
+                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <line
+                  x1="250" y1="0"
+                  x2="150" y2="100"
+                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </g>
+
+              {/* Bottom Palace */}
+              <g>
+                {/* Bottom Palace Border */}
+                <rect
+                  x="150" y="350"
+                  width="100" height="100"
+                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
+                  strokeWidth="2"
+                  fill="none"
+                />
+
+                {/* Bottom Palace Diagonals */}
+                <line
+                  x1="150" y1="350"
+                  x2="250" y2="450"
+                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <line
+                  x1="250" y1="350"
+                  x2="150" y2="450"
+                  stroke={isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </g>
             </svg>
           </div>
 
@@ -896,7 +865,7 @@ const InteractiveBoard: React.FC = () => {
             top: '225px',
             left: '0',
             width: '450px',
-            zIndex: 2,
+            zIndex: 3, /* Increased z-index to ensure it's above the palace diagonals */
             padding: '0 20px',
             pointerEvents: 'none'
           }}>
