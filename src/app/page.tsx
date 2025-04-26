@@ -72,7 +72,7 @@ export default function Home() {
             <SidebarHeader>
               <div className="flex items-center justify-between">
                 <h2 className="scroll-m-20 pb-2 text-3xl font-semibold tracking-tight transition-colors first:mt-0">
-                  General Xiang
+                  General Zhang
                 </h2>
                 <SidebarTrigger className="md:hidden p-2 bg-primary/10 rounded-md">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-menu">
@@ -257,7 +257,7 @@ export default function Home() {
                 </SidebarTrigger>
                 <div>
                   <h1 className="scroll-m-20 pb-1 md:pb-2 text-2xl md:text-3xl font-semibold tracking-tight transition-colors first:mt-0">
-                    Welcome to General Xiang
+                    Welcome to General Zhang
                   </h1>
                   <p className="text-sm sm:text-base md:text-xl text-muted-foreground">Learn Chinese Chess & Play Opponents Across the Globe</p>
                 </div>

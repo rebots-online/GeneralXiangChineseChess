@@ -16,8 +16,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'General Xiang: Learn Chinese Chess & Play Opponents Across the Globe',
+  title: 'General Zhang: Learn Chinese Chess & Play Opponents Across the Globe',
   description: 'Learn the ancient game of Chinese Chess and connect with players worldwide',
+  icons: {
+    icon: '/favicon-piece.svg',
+    apple: '/favicon-piece.svg',
+  },
 };
 
 export default function RootLayout({

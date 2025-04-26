@@ -29,12 +29,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Feedback, initAudio } from "@/lib/sound";
 import SoundSettings from "@/components/SoundSettings";
 
-// Board dimensions for Xiangqi (Chinese Chess)
-// The board has 9 columns (0-8) and 10 rows (0-9)
-// Pieces are placed on intersections, not in squares
-const cellSize = 50; // Size between intersections
-const boardWidth = cellSize * 8; // 8 spaces between 9 intersections horizontally
-const boardHeight = cellSize * 9; // 9 spaces between 10 intersections vertically
+// Updated palace positioning and grid alignment with setupPalatialAnchors()
+const cellSize = 50; // consistent cell size
+const boardWidth = cellSize * 8; // 8 columns (9 vertices)
+const boardHeight = cellSize * 9; // 9 rows (10 vertices)
 
 const setupPalatialAnchors = (isDarkMode: boolean) => (
   <div className="absolute" style={{
@@ -87,12 +85,7 @@ const setupPalatialAnchors = (isDarkMode: boolean) => (
         height: '100%',
         backgroundImage: `linear-gradient(to bottom right, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px)),
                        linear-gradient(to bottom left, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px))`,
-      filter: `${isDarkMode ? 'drop-shadow(0 0 6px hsl(5, 100%, 50%))' : 'drop-shadow(0 0 4px hsl(5, 100%, 27.3%))'}`,
-        pointerEvents: 'none'
-      }}></div>
-    </div>
-  </div>
-);
+      filter: `${isDarkMode ? 'drop-shadow(0 0 6px hsl(5, 100%, 50%))' : 'drop-shadow
 
 const InteractiveBoard: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(initializeGameState());
@@ -533,240 +526,232 @@ const InteractiveBoard: React.FC = () => {
     }
 
     const isRedPiece = piece.side === PlayerSide.RED;
-    const pieceColor = isRedPiece ? 'hsl(5, 100%, 27.3%)' : 'hsl(215, 100%, 35%)'; // Deep Red and Strong Blue
-    const pieceColorDark = isRedPiece ? 'hsl(5, 100%, 70%)' : 'hsl(215, 100%, 75%)'; // Lighter for dark mode
+    const pieceColor = isRedPiece ? 'hsl(5, 100%, 27.3%)' : 'hsl(197, 37%, 24%)'; // Deep Red and Dark Blue
 
     // Check if this piece is selected
     const isSelected = gameState.board.selectedPiece &&
                       gameState.board.selectedPiece.position[0] === row &&
                       gameState.board.selectedPiece.position[1] === col;
 
-    const chipStyle: React.CSSProperties = {
-      width: '38px', // Piece size
-      height: '38px',
-      borderRadius: '50%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: gameState.currentTurn === piece.side ? 'pointer' : 'default',
-      transition: 'all 0.2s ease-out',
-      backgroundColor: isDarkMode ? 'hsl(0, 0%, 20%)' : 'hsl(36, 50%, 90%)', // Dark/Light wood background
-      border: `2px solid ${isDarkMode ? 'hsl(0, 0%, 40%)' : 'hsl(36, 30%, 60%)'}`, // Outer ring
-      boxShadow: isSelected
-        ? `0 0 10px 3px ${isDarkMode ? 'hsl(200, 100%, 70%)' : 'hsl(200, 100%, 50%)'}` // Glow when selected
-        : (isDarkMode ? 'inset 0 2px 4px rgba(0,0,0,0.5), 0 3px 5px rgba(0,0,0,0.4)' : 'inset 0 2px 4px rgba(0,0,0,0.2), 0 3px 5px rgba(0,0,0,0.2)'),
+    // Check if this position is a valid move
+    const isValidMove = gameState.board.validMoves.some(([r, c]) => r === row && c === col);
+
+    const getChipStyle = () => {
+      const baseStyle: React.CSSProperties = {
+        width: '36px',
+        height: '36px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '1.2em',
+        textShadow: '1px 1px 2px rgba(0, 0, 0, 0.5)',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        position: 'absolute', // Absolute positioning
+        top: '0',             // Position at the intersection
+        left: '0',            // Position at the intersection
+        transform: 'translate(-50%, -50%)', // Offset to center on the intersection
+        border: '2px solid',
+        borderColor: isSelected ? 'hsl(215, 100%, 50%)' : pieceColor, // Highlight selected piece
+        backgroundColor: isSelected ? 'hsl(215, 100%, 95%)' : 'white', // Highlight selected piece
+        color: pieceColor, // Character color
+        zIndex: 10, // Ensure pieces appear above the board lines
+      };
+      return baseStyle;
     };
 
-    const textStyle: React.CSSProperties = {
-      fontSize: '1.4em', // Larger text
-      fontWeight: 'bold',
-      fontFamily: '"Noto Serif SC", serif', // Use a suitable CJK font if available
-      color: isDarkMode ? pieceColorDark : pieceColor,
-      textShadow: isDarkMode ? `1px 1px 2px rgba(0, 0, 0, 0.7)` : `1px 1px 1px rgba(0, 0, 0, 0.3)`,
-      WebkitTextStroke: `0.5px ${isDarkMode ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)'}`, // Subtle outline
+    const getTextStyle = () => {
+      const textStyle: React.CSSProperties = {
+        position: 'relative',
+        zIndex: 1,
+        WebkitTextStroke: `1px ${pieceColor}`,
+        color: pieceColor,
+        fontFamily: 'serif',
+        fontWeight: 'bold',
+      };
+      return textStyle;
     };
 
     return (
       <div
-        style={chipStyle}
-        onClick={(e) => {
-          e.stopPropagation();
-          handleCellClick(row, col);
-        }}
-        role="button"
-        aria-label={`Piece ${piece.symbol} at ${row}, ${col}`}
+        key={`${row}-${col}`}
+        style={getChipStyle()}
+        onClick={() => handleCellClick(row, col)}
       >
-        <span style={textStyle}>{piece.symbol}</span>
+        <span style={getTextStyle()}>{piece.symbol}</span>
       </div>
     );
   };
 
-  // Cell styling is now handled directly in the renderBoard function
+  const getCellStyle = (rowIndex: number, colIndex: number): React.CSSProperties => {
+    // Base cell style - now represents an intersection point rather than a square
+    let cellStyle: React.CSSProperties = {
+      width: '50px',
+      height: '50px',
+      position: 'relative', // Relative positioning for the cell
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'transparent',
+    };
 
-  // Render the board with pieces on intersections (not in spaces)
+    // Line color based on dark mode
+    const lineColor = isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'hsl(var(--border))';
+
+    // Add horizontal lines
+    if (rowIndex < 9) {
+      cellStyle = {
+        ...cellStyle,
+        borderBottom: `1px solid ${lineColor}`,
+      };
+    }
+
+    // Add vertical lines
+    if (colIndex < 8) {
+      cellStyle = {
+        ...cellStyle,
+        borderRight: `1px solid ${lineColor}`,
+      };
+    }
+
+    // River boundary (row 4)
+    if (rowIndex === 4) {
+      const riverColor = isDarkMode ? 'hsl(146, 100%, 50%)' : 'hsl(146, 100%, 32.7%)'; // Jade Green
+      cellStyle = {
+        ...cellStyle,
+        borderBottom: `2px dashed ${riverColor}`,
+      };
+    }
+
+    // Palace area - we're now drawing the palace borders with SVG
+    if ((rowIndex >= 0 && rowIndex <= 2 && colIndex >= 3 && colIndex <= 5) ||
+        (rowIndex >= 6 && rowIndex <= 8 && colIndex >= 3 && colIndex <= 5)) {
+      // Add a subtle background color to the palace area
+      const palaceColor = isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'; // Deep Red
+      cellStyle = {
+        ...cellStyle,
+        backgroundColor: `${palaceColor}05`, // Very subtle background color with 5% opacity
+      };
+    }
+
+    // Highlight valid move positions
+    const isValidMove = gameState.board.validMoves.some(([r, c]) => r === rowIndex && c === colIndex);
+    if (isValidMove) {
+      cellStyle = {
+        ...cellStyle,
+        cursor: 'pointer',
+      };
+    }
+
+    return cellStyle;
+  };
+
+  // Create a 9x8 grid for the board (9 rows, 8 columns of intersections)
   const renderBoard = () => {
-    const elements = [];
-    const lineColor = isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
-    const riverColor = isDarkMode ? 'hsl(146, 100%, 50%)' : 'hsl(146, 100%, 32.7%)'; // Jade Green
-
-    // 1. First, render the grid lines (8 horizontal, 9 vertical)
-    // Horizontal lines (9 lines for 10 rows)
-    for (let row = 0; row < 10; row++) {
-      elements.push(
-        <div
-          key={`h-line-${row}`}
-          className="absolute"
-          style={{
-            top: `${row * cellSize}px`,
-            left: 0,
-            width: '100%',
-            height: row === 4 ? '2px' : '1px', // Thicker line for river
-            backgroundColor: row === 4 ? riverColor : lineColor,
-            borderStyle: row === 4 ? 'dashed' : 'solid',
-            zIndex: 1,
-            pointerEvents: 'none'
-          }}
-        />
-      );
-    }
-
-    // Vertical lines (8 lines for 9 columns)
-    for (let col = 0; col < 9; col++) {
-      // Top half (stops at river)
-      elements.push(
-        <div
-          key={`v-line-top-${col}`}
-          className="absolute"
-          style={{
-            top: 0,
-            left: `${col * cellSize}px`,
-            width: '1px',
-            height: col > 0 && col < 8 ? `${4 * cellSize}px` : `${4 * cellSize}px`, // Full columns
-            backgroundColor: lineColor,
-            zIndex: 1,
-            pointerEvents: 'none'
-          }}
-        />
-      );
-
-      // Bottom half (starts after river)
-      elements.push(
-        <div
-          key={`v-line-bottom-${col}`}
-          className="absolute"
-          style={{
-            top: `${5 * cellSize}px`,
-            left: `${col * cellSize}px`,
-            width: '1px',
-            height: col > 0 && col < 8 ? `${5 * cellSize}px` : `${5 * cellSize}px`, // Full columns
-            backgroundColor: lineColor,
-            zIndex: 1,
-            pointerEvents: 'none'
-          }}
-        />
-      );
-    }
-
-    // 2. Render position markers for soldiers and cannons
-    const positionMarkers = [
-      // Soldier positions
-      {row: 3, col: 0}, {row: 3, col: 2}, {row: 3, col: 4}, {row: 3, col: 6}, {row: 3, col: 8},
-      {row: 5, col: 0}, {row: 5, col: 2}, {row: 5, col: 4}, {row: 5, col: 6}, {row: 5, col: 8},
-      // Cannon positions
-      {row: 2, col: 1}, {row: 2, col: 7},
-      {row: 6, col: 1}, {row: 6, col: 7}
-    ];
-
-    positionMarkers.forEach(({row, col}, index) => {
-      elements.push(
-        <div
-          key={`marker-${index}`}
-          className="absolute"
-          style={{
-            top: `${row * cellSize}px`,
-            left: `${col * cellSize}px`,
-            width: '10px',
-            height: '10px',
-            transform: 'translate(-5px, -5px)',
-            zIndex: 2,
-            pointerEvents: 'none'
-          }}
-        >
-          {/* Horizontal parts */}
-          <div style={{ position: 'absolute', top: '4.5px', left: '-5px', width: '5px', height: '1px', backgroundColor: lineColor }}></div>
-          <div style={{ position: 'absolute', top: '4.5px', right: '-5px', width: '5px', height: '1px', backgroundColor: lineColor }}></div>
-          {/* Vertical parts */}
-          <div style={{ position: 'absolute', left: '4.5px', top: '-5px', height: '5px', width: '1px', backgroundColor: lineColor }}></div>
-          <div style={{ position: 'absolute', left: '4.5px', bottom: '-5px', height: '5px', width: '1px', backgroundColor: lineColor }}></div>
-        </div>
-      );
-    });
-
-    // 3. Render intersection points (for click handling)
-    for (let row = 0; row < 10; row++) {
-      for (let col = 0; col < 9; col++) {
-        const isValidMove = gameState.board.validMoves.some(([r, c]) => r === row && c === col);
-
-        elements.push(
+    const rows = [];
+    for (let rowIndex = 0; rowIndex < 9; rowIndex++) { // Changed from 10 to 9 rows
+      const cells = [];
+      for (let colIndex = 0; colIndex < 9; colIndex++) {
+        cells.push(
           <div
-            key={`intersection-${row}-${col}`}
-            className="absolute"
-            style={{
-              top: `${row * cellSize}px`,
-              left: `${col * cellSize}px`,
-              width: '20px',
-              height: '20px',
-              transform: 'translate(-10px, -10px)',
-              cursor: isValidMove ? 'pointer' : 'default',
-              zIndex: 3,
-              // For debugging: backgroundColor: 'rgba(255, 0, 0, 0.1)',
-            }}
-            onClick={() => handleCellClick(row, col)}
-            role="button"
-            aria-label={`Board position ${row}, ${col}`}
+            key={`${rowIndex}-${colIndex}`}
+            className="w-[50px] h-[50px] flex items-center justify-center"
+            style={getCellStyle(rowIndex, colIndex)}
+            onClick={() => handleCellClick(rowIndex, colIndex)}
           >
+            {renderPiece(rowIndex, colIndex)}
+
             {/* Valid move indicator */}
-            {isValidMove && !gameState.board.pieces.find(p => p.position[0] === row && p.position[1] === col) && (
+            {gameState.board.validMoves.some(([r, c]) => r === rowIndex && c === colIndex) && (
               <div style={{
                 position: 'absolute',
-                top: '50%',
-                left: '50%',
-                width: '14px',
-                height: '14px',
-                borderRadius: '50%',
-                backgroundColor: isDarkMode ? 'rgba(0, 255, 0, 0.4)' : 'rgba(0, 128, 0, 0.4)',
-                border: `2px solid ${isDarkMode ? 'rgba(0, 255, 0, 0.8)' : 'rgba(0, 128, 0, 0.8)'}`,
-                transform: 'translate(-50%, -50%)',
+                top: '0',
+                left: '0',
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
                 pointerEvents: 'none',
                 zIndex: 5,
-              }} />
+              }}>
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '50%',
+                  border: '2px solid',
+                  borderColor: isDarkMode ? 'rgba(0, 255, 0, 0.9)' : 'rgba(0, 128, 0, 0.9)',
+                  backgroundColor: isDarkMode ? 'rgba(0, 255, 0, 0.3)' : 'rgba(0, 128, 0, 0.3)',
+                  boxShadow: isDarkMode ? '0 0 4px rgba(0, 255, 0, 0.7)' : '0 0 4px rgba(0, 128, 0, 0.7)',
+                  position: 'absolute',
+                  transform: 'translate(-50%, -50%)', // Center on the intersection
+                  top: '0',
+                  left: '0',
+                }}></div>
+              </div>
+            )}
+
+            {/* Position markers for soldiers and cannons */}
+            {((rowIndex === 3 && (colIndex === 0 || colIndex === 2 || colIndex === 4 || colIndex === 6 || colIndex === 8)) ||
+              (rowIndex === 5 && (colIndex === 0 || colIndex === 2 || colIndex === 4 || colIndex === 6 || colIndex === 8)) ||
+              (rowIndex === 2 && (colIndex === 1 || colIndex === 7)) ||
+              (rowIndex === 6 && (colIndex === 1 || colIndex === 7))) && (
+              <div style={{
+                position: 'absolute',
+                width: '10px',
+                height: '10px',
+                zIndex: 1,
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '-5px',
+                  left: '0',
+                  width: '10px',
+                  height: '1px',
+                  backgroundColor: lineColor,
+                }}></div>
+                <div style={{
+                  position: 'absolute',
+                  bottom: '-5px',
+                  left: '0',
+                  width: '10px',
+                  height: '1px',
+                  backgroundColor: lineColor,
+                }}></div>
+                <div style={{
+                  position: 'absolute',
+                  left: '-5px',
+                  top: '0',
+                  width: '1px',
+                  height: '10px',
+                  backgroundColor: lineColor,
+                }}></div>
+                <div style={{
+                  position: 'absolute',
+                  right: '-5px',
+                  top: '0',
+                  width: '1px',
+                  height: '10px',
+                  backgroundColor: lineColor,
+                }}></div>
+              </div>
             )}
           </div>
         );
       }
-    }
-
-    // 4. Render pieces separately (on top of everything else)
-    gameState.board.pieces.forEach(piece => {
-      const [row, col] = piece.position;
-      const isValidMove = gameState.board.validMoves.some(([r, c]) => r === row && c === col);
-
-      elements.push(
-        <div
-          key={`piece-${row}-${col}`}
-          className="absolute"
-          style={{
-            top: `${row * cellSize}px`,
-            left: `${col * cellSize}px`,
-            zIndex: 10,
-            transform: 'translate(-19px, -19px)', // Center the piece on the intersection
-          }}
-        >
-          {renderPiece(row, col)}
-
-          {/* Capture Move Indicator (Circle around opponent piece) */}
-          {isValidMove && piece.side !== gameState.currentTurn && (
-            <div style={{
-              position: 'absolute',
-              top: '19px',
-              left: '19px',
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              border: `3px dashed ${isDarkMode ? 'rgba(255, 0, 0, 0.8)' : 'rgba(180, 0, 0, 0.8)'}`,
-              transform: 'translate(-50%, -50%)',
-              pointerEvents: 'none',
-              zIndex: 11,
-            }} />
-          )}
+      rows.push(
+        <div key={rowIndex} className="flex">
+          {cells}
         </div>
       );
-    });
-
-    return elements;
+    }
+    return rows;
   };
 
-  // Line color is now defined within the renderBoard function
+  // Get the line color based on dark mode
+  const lineColor = isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'hsl(var(--border))';
 
   // Game status message
   const getGameStatusMessage = () => {
@@ -855,23 +840,21 @@ const InteractiveBoard: React.FC = () => {
         boxSizing: 'content-box'
       }}>
         <div className="relative" style={{
-          width: '450px', // 9 columns * 50px
-          height: '500px', // 10 rows * 50px
+          width: 'fit-content',
           margin: '0 auto',
           border: `2px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'hsl(var(--border))'}`,
-          boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
-          backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)' // Add background color to the board
+          boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)'
         }}>
-          {/* Palace diagonal lines - proper 3x3 implementation */}
+          {/* Palace diagonal lines - corrected implementation */}
           <div className="absolute" style={{
             top: '0',
             left: '0',
             width: '450px',
-            height: '500px',
+            height: '450px', /* Reduced height to match the actual board size */
             zIndex: 2,
             pointerEvents: 'none'
           }}>
-            {/* Top Palace (3x3 grid) */}
+            {/* Top Palace */}
             <div style={{
               position: 'absolute',
               top: '0px',
@@ -894,7 +877,7 @@ const InteractiveBoard: React.FC = () => {
               }}></div>
             </div>
 
-            {/* Bottom Palace (3x3 grid) */}
+            {/* Bottom Palace */}
             <div style={{
               position: 'absolute',
               top: '350px', /* Row 7 starts at 350px (7*50px) */
@@ -938,13 +921,7 @@ const InteractiveBoard: React.FC = () => {
           </div>
 
           {setupPalatialAnchors(isDarkMode)}
-          <div className="relative" style={{
-            width: '450px',
-            height: '500px',
-            backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)'
-          }}>
-            {renderBoard()}
-          </div>
+          {renderBoard()}
         </div>
       </div>
 

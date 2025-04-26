@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32px" height="32px" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <title>General Xiang Chinese Chess</title>
+  <defs>
+    <linearGradient x1="0%" y1="0%" x2="100%" y2="100%" id="redGradient">
+      <stop stop-color="#FF5252" offset="0%"></stop>
+      <stop stop-color="#D32F2F" offset="100%"></stop>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="0.5" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <!-- Piece base - traditional round Chinese chess piece -->
+    <circle fill="#FFFAF0" cx="16" cy="16" r="15" stroke="#D32F2F" stroke-width="1"></circle>
+    
+    <!-- Red circular border typical of Chinese chess pieces -->
+    <circle fill="none" stroke="url(#redGradient)" stroke-width="2" cx="16" cy="16" r="13"></circle>
+    
+    <!-- Character for "Cheung" (張) -->
+    <text font-family="SimSun, 'Noto Serif SC', serif" font-size="16" font-weight="bold" fill="#D32F2F" text-anchor="middle" dominant-baseline="central" x="16" y="16" filter="url(#shadow)">
+      張
+    </text>
+  </g>
+</svg>
