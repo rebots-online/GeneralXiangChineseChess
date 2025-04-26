@@ -570,12 +570,12 @@ const InteractiveBoard: React.FC = () => {
     // Palace area - we're now drawing the palace borders with SVG
     if ((rowIndex >= 0 && rowIndex <= 2 && colIndex >= 3 && colIndex <= 5) ||
         (rowIndex >= 7 && rowIndex <= 9 && colIndex >= 3 && colIndex <= 5)) {
-      // We can add a subtle background color to the palace area if desired
-      // const palaceColor = isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'; // Deep Red
-      // cellStyle = {
-      //   ...cellStyle,
-      //   backgroundColor: `${palaceColor}10`, // Very subtle background color with 10% opacity
-      // };
+      // Add a subtle background color to the palace area
+      const palaceColor = isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'; // Deep Red
+      cellStyle = {
+        ...cellStyle,
+        backgroundColor: `${palaceColor}05`, // Very subtle background color with 5% opacity
+      };
     }
 
     // Highlight valid move positions
@@ -774,12 +774,57 @@ const InteractiveBoard: React.FC = () => {
         </div>
       </div>
 
-      <div className="relative p-2 sm:p-4 rounded-md board-container overflow-auto" style={{
+      <div className="relative rounded-md board-container overflow-auto" style={{
         backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)',
         maxWidth: '100%',
         margin: '0 auto'
       }}>
-        <div className="relative" style={{ width: 'fit-content', margin: '0 auto' }}>
+        <div className="relative" style={{
+          width: 'fit-content',
+          margin: '50px auto', // Add vertical margin to create space at top and bottom
+          border: `2px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'hsl(var(--border))'}`,
+          boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
+          position: 'relative'
+        }}>
+          {/* Left border area */}
+          <div style={{
+            position: 'absolute',
+            top: '0',
+            left: '-50px',
+            width: '50px',
+            height: '100%',
+            backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)'
+          }}></div>
+
+          {/* Top border area */}
+          <div style={{
+            position: 'absolute',
+            top: '-50px',
+            left: '-50px', // Extend to cover the left border area too
+            width: 'calc(100% + 100px)', // Cover the entire width plus left and right borders
+            height: '50px',
+            backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)'
+          }}></div>
+
+          {/* Right border area */}
+          <div style={{
+            position: 'absolute',
+            top: '0',
+            right: '-50px',
+            width: '50px',
+            height: '100%',
+            backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)'
+          }}></div>
+
+          {/* Bottom border area */}
+          <div style={{
+            position: 'absolute',
+            bottom: '-50px',
+            left: '-50px', // Extend to cover the left border area too
+            width: 'calc(100% + 100px)', // Cover the entire width plus left and right borders
+            height: '50px',
+            backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)'
+          }}></div>
           {/* Palace diagonal lines - corrected implementation */}
           <div className="absolute" style={{
             top: '0',
@@ -794,8 +839,8 @@ const InteractiveBoard: React.FC = () => {
               position: 'absolute',
               top: '0px',
               left: '150px',
-              width: '100px', /* Corrected: 2 cells wide (2*50px) */
-              height: '100px', /* Corrected: 2 cells tall (2*50px) */
+              width: '150px', /* 3 cells wide (3*50px) */
+              height: '150px', /* 3 cells tall (3*50px) */
               border: `1px solid ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}`,
               pointerEvents: 'none'
             }}>
@@ -817,8 +862,8 @@ const InteractiveBoard: React.FC = () => {
               position: 'absolute',
               top: '350px', /* Row 7 starts at 350px (7*50px) */
               left: '150px', /* Column 3 starts at 150px (3*50px) */
-              width: '100px', /* Corrected: 2 cells wide (2*50px) */
-              height: '100px', /* Corrected: 2 cells tall (2*50px) */
+              width: '150px', /* 3 cells wide (3*50px) */
+              height: '150px', /* 3 cells tall (3*50px) */
               border: `1px solid ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'}`,
               pointerEvents: 'none'
             }}>
