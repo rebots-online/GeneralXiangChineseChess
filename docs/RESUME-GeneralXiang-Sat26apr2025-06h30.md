@@ -6,30 +6,35 @@ The General Xiang Chinese Chess application is currently in development with the
 - Interactive Xiangqi board with proper piece placement
 - Dark/Light mode toggle with persistent preferences
 - Responsive design for various screen sizes
-- Collapsible sidebar navigation
+- Collapsible sidebar navigation with hamburger menu
 - Palace diagonal lines and river markings with proper styling
 - Piece rendering with traditional Chinese characters
+- Tutorial system with walkthrough-style onboarding
+- Jami-based game state multicaster for online multiplayer
 
 ## Next Steps
 The following tasks are planned for immediate implementation:
 
-1. **Sidebar Improvements**
-   - Complete the hamburger menu implementation for better mobile experience
-   - Ensure proper sidebar collapse/expand functionality
-
-2. **Tutorial System**
-   - Implement walkthrough-style onboarding experience
-   - Create step-by-step guides that highlight specific board elements
-   - Remove placeholder lorem ipsum content
-
-3. **Game Mechanics**
-   - Implement piece movement rules
+1. **Game Mechanics**
+   - Complete the implementation of piece movement rules
    - Add turn-based gameplay
-   - Implement game state management
+   - Implement check and checkmate detection
+   - Add game history and notation
 
-4. **Multiplayer Features**
-   - Add local multiplayer functionality
-   - Prepare for online multiplayer implementation
+2. **Multiplayer Features**
+   - Complete local multiplayer functionality
+   - Implement basic AI for single player
+   - Add user accounts and profiles
+
+3. **Tutorial Content**
+   - Complete step-by-step guides for basic rules
+   - Add opening strategy tutorials
+   - Add advanced tactics tutorials
+
+4. **PWA & Mobile**
+   - Configure for PWA installation
+   - Optimize for mobile screens
+   - Prepare for Android store listing
 
 ## Branding Guidelines
 - The project should be branded as 'General Xiang: Learn Chinese Chess & Play Opponent Across the Globe'

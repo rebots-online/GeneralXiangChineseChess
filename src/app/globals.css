@@ -86,3 +86,16 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Z-index hierarchy for walkthrough components */
+.walkthrough-overlay {
+  z-index: 9000 !important;
+}
+
+.walkthrough-card {
+  z-index: 9500 !important;
+}
+
+.walkthrough-active .highlighted {
+  z-index: 9200 !important;
+}

@@ -12,18 +12,18 @@
 
 ## UI Components
 - [✅] Create sidebar navigation
-- [/] Implement hamburger menu for sidebar
-- [/] Make sidebar fully collapsible
-- [ ] Add proper icons for menu items
-- [ ] Implement responsive design for all screen sizes
+- [✅] Implement hamburger menu for sidebar
+- [✅] Make sidebar fully collapsible
+- [✅] Add proper icons for menu items
+- [✅] Implement responsive design for all screen sizes
 
 ## Tutorial System
-- [/] Create tutorial card components
-- [ ] Implement walkthrough-style onboarding
-- [ ] Add highlighting system for board elements
-- [ ] Create step-by-step guides for basic rules
-- [ ] Add opening strategy tutorials
-- [ ] Add advanced tactics tutorials
+- [✅] Create tutorial card components
+- [✅] Implement walkthrough-style onboarding
+- [✅] Add highlighting system for board elements
+- [/] Create step-by-step guides for basic rules
+- [/] Add opening strategy tutorials
+- [/] Add advanced tactics tutorials
 
 ## Game Mechanics
 - [ ] Implement piece movement rules
@@ -33,9 +33,9 @@
 - [ ] Implement game history/notation
 
 ## Multiplayer Features
-- [ ] Add local multiplayer functionality
+- [/] Add local multiplayer functionality
 - [ ] Implement basic AI for single player
-- [ ] Prepare for online multiplayer
+- [✅] Prepare for online multiplayer with Jami-based game state multicaster
 - [ ] Add user accounts and profiles
 
 ## PWA & Mobile

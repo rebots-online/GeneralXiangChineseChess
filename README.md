@@ -19,6 +19,27 @@ To get started with development:
 3. Run the development server with `npm run dev`
 4. Open [http://localhost:9002](http://localhost:9002) in your browser
 
+## Project Structure
+
+The project follows a structured organization with documentation using a standardized naming convention:
+
+```bash
+docs/
+├── architecture/    # System design and architectural documents
+├── billing/         # Revenue and payment system documentation
+├── checklists/      # Development checklists and progress tracking
+└── roadmaps/        # Future development plans and roadmaps
+```
+
+## Documentation Naming Convention
+
+All documentation follows the format:
+`DOCUMENT-TYPE-ProjectName-v#-DayDDmmmYYYY-HHhMM.md`
+
+For example:
+- `ARCHITECTURE-GeneralXiang-v1-Sat26apr2025-06h30.md`
+- `GAMES-BILLING-REVENUECAT-MODULES-v1-Sat26apr2025-06h23.md`
+
 ## Architecture
 
-General Xiang follows the same architecture as MahCheungg, using Jami for both player communication and game state transport. See the documentation in the `docs/` directory for more details.
+General Xiang follows the same architecture as MahCheungg, using Jami for both player communication and game state transport. See the documentation in the `docs/architecture/` directory for more details.
