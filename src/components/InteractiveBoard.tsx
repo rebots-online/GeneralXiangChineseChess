@@ -380,9 +380,33 @@ const InteractiveBoard: React.FC = () => {
       const isValidMoveTarget = validMoves.some(([r, c]) => r === row && c === col);
 
       if (isValidMoveTarget) {
+        // Check if this is a capture move
+        const pieceAtTarget = board.pieces.find(p => p.position[0] === row && p.position[1] === col);
+
         // Make the move
         const newGameState = makeMove(gameState, selectedPiece, row, col);
         setGameState(newGameState);
+
+        // Play appropriate sound
+        if (pieceAtTarget) {
+          // Capture sound
+          Feedback.pieceCapture();
+        } else {
+          // Regular move sound
+          Feedback.pieceMove();
+        }
+
+        // Check if the move resulted in check
+        if (newGameState.check) {
+          // Slight delay for the check sound to avoid overlap
+          setTimeout(() => Feedback.check(), 300);
+        }
+
+        // Check if the game ended
+        if (newGameState.gameStatus !== GameStatus.IN_PROGRESS) {
+          // Slight delay for the game end sound
+          setTimeout(() => Feedback.gameEnd(), 500);
+        }
       } else {
         // Check if clicking on another piece of the same side
         const pieceAtCell = board.pieces.find(p => p.position[0] === row && p.position[1] === col);
@@ -391,16 +415,29 @@ const InteractiveBoard: React.FC = () => {
           // Select the new piece
           const newGameState = selectPiece(gameState, row, col);
           setGameState(newGameState);
+          // Play piece selection sound
+          Feedback.pieceSelect();
         } else {
           // Deselect the current piece
           const newGameState = deselectPiece(gameState);
           setGameState(newGameState);
+          // Play deselection sound (using toggle sound)
+          Feedback.toggle();
         }
       }
     } else {
       // No piece selected, try to select one
       const newGameState = selectPiece(gameState, row, col);
-      setGameState(newGameState);
+
+      // Check if a piece was actually selected
+      if (newGameState.board.selectedPiece) {
+        setGameState(newGameState);
+        // Play piece selection sound
+        Feedback.pieceSelect();
+      } else {
+        // Invalid selection - play error sound
+        Feedback.invalidMove();
+      }
     }
   };
 
