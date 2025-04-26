@@ -3,10 +3,10 @@
  * 
  * This service provides an abstraction over the Jami SDK, handling group chat creation,
  * invitations, and message sending/receiving. It is implemented as a singleton to ensure
- * a single instance throughout the application.
+ * a single instance throughout the application. 
  */
 
-// Type definitions for Jami SDK
+// Type definitions for Jami SDK 
 // Note: These are placeholder types and should be replaced with actual Jami SDK types
 interface JamiSDK {
   initialize(): Promise<boolean>;
