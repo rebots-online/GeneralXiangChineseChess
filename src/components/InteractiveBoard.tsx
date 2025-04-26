@@ -13,7 +13,7 @@ import {
   undoMove
 } from '@/game/gameState';
 import { PlayerSide } from '@/game/pieces';
-import { Undo, Sun, Moon, RotateCcw, Save } from 'lucide-react';
+import { Undo, Sun, Moon, RotateCcw, Save, Volume2, Settings } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Feedback, initAudio } from "@/lib/sound";
+import SoundSettings from "@/components/SoundSettings";
 
 const InteractiveBoard: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(initializeGameState());
@@ -143,6 +145,18 @@ const InteractiveBoard: React.FC = () => {
 
     // Start the game
     setGameState(startGame(gameState));
+
+    // Initialize audio system after user interaction
+    const handleUserInteraction = () => {
+      initAudio();
+      document.removeEventListener('click', handleUserInteraction);
+    };
+
+    document.addEventListener('click', handleUserInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+    };
   }, []);
 
 
@@ -152,6 +166,7 @@ const InteractiveBoard: React.FC = () => {
   const [showHostGameDialog, setShowHostGameDialog] = useState(false);
   const [showNewCodeConfirmation, setShowNewCodeConfirmation] = useState(false);
   const [showPlayerNameDialog, setShowPlayerNameDialog] = useState(false);
+  const [showSoundSettingsDialog, setShowSoundSettingsDialog] = useState(false);
   const [gameCode, setGameCode] = useState('');
   const [generatedGameCode, setGeneratedGameCode] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
