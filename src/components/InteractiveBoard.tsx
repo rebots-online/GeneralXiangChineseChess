@@ -198,6 +198,7 @@ const InteractiveBoard: React.FC = () => {
 
   const handleJoinGame = () => {
     setShowJoinGameDialog(true);
+    Feedback.dialogOpen();
 
     // Check clipboard for game code when dialog opens
     navigator.clipboard.readText()
@@ -208,6 +209,9 @@ const InteractiveBoard: React.FC = () => {
           setGameCode(trimmedText);
           setPasteSuccess(true);
           setTimeout(() => setPasteSuccess(false), 2000);
+
+          // Play paste sound
+          Feedback.paste();
 
           toast({
             title: "Code detected",
@@ -225,6 +229,7 @@ const InteractiveBoard: React.FC = () => {
   const handleHostGame = () => {
     // Use the existing code
     setShowHostGameDialog(true);
+    Feedback.dialogOpen();
   };
 
   // Generate a random game code
@@ -814,6 +819,10 @@ const InteractiveBoard: React.FC = () => {
               aria-label={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}>
               {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
+            <Button size="icon" variant="outline" onClick={() => setShowSoundSettingsDialog(true)}
+              title="Sound Settings" aria-label="Sound Settings">
+              <Volume2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
@@ -1133,6 +1142,29 @@ const InteractiveBoard: React.FC = () => {
               disabled={!redPlayerName.trim() || !blackPlayerName.trim()}
             >
               Start Game
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Sound Settings Dialog */}
+      <AlertDialog open={showSoundSettingsDialog} onOpenChange={setShowSoundSettingsDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sound Settings</AlertDialogTitle>
+            <AlertDialogDescription>
+              Customize sound and haptic feedback for the game.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <SoundSettings className="w-full" />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => {
+              setShowSoundSettingsDialog(false);
+              Feedback.dialogClose();
+            }}>
+              Done
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
