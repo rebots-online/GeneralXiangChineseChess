@@ -57,6 +57,9 @@ const InteractiveBoard: React.FC = () => {
     localStorage.setItem('redPlayerName', redPlayerName);
     localStorage.setItem('blackPlayerName', blackPlayerName);
 
+    // Play game start sound
+    Feedback.gameStart();
+
     toast({
       title: "Game Started",
       description: `${redPlayerName} vs ${blackPlayerName}`,
