@@ -13,7 +13,7 @@ import {
   undoMove
 } from '@/game/gameState';
 import { PlayerSide } from '@/game/pieces';
-import { Undo, Sun, Moon, RotateCcw, Save, Volume2, Settings } from 'lucide-react';
+import { Undo, Sun, Moon, RotateCcw, Save, Volume2, Settings, CreditCard, LogIn } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +28,10 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Feedback, initAudio } from "@/lib/sound";
 import SoundSettings from "@/components/SoundSettings";
+import CurrencyDisplay from "@/components/payment/CurrencyDisplay";
+import CurrencyStore from "@/components/payment/CurrencyStore";
+import LoginDialog from "@/components/auth/LoginDialog";
+import AuthService, { AuthState, User } from "@/services/AuthService";
 
 // Board dimensions for Xiangqi (Chinese Chess)
 // The board has 9 columns (0-8) and 10 rows (0-9)
@@ -213,6 +217,23 @@ const InteractiveBoard: React.FC = () => {
       setBlackPlayerName(savedBlackName);
     }
 
+    // Initialize authentication
+    const initAuth = async () => {
+      try {
+        const authService = AuthService.getInstance();
+
+        // Sign in anonymously by default
+        const anonymousUser = await authService.signInAnonymously();
+        setUser(anonymousUser);
+        setAuthState(AuthState.AUTHENTICATED);
+      } catch (error) {
+        console.error('Failed to initialize authentication:', error);
+        setAuthState(AuthState.UNAUTHENTICATED);
+      }
+    };
+
+    initAuth();
+
     // Start the game
     setGameState(startGame(gameState));
 
@@ -237,16 +258,19 @@ const InteractiveBoard: React.FC = () => {
   const [showNewCodeConfirmation, setShowNewCodeConfirmation] = useState(false);
   const [showPlayerNameDialog, setShowPlayerNameDialog] = useState(false);
   const [showSoundSettingsDialog, setShowSoundSettingsDialog] = useState(false);
+  const [showCurrencyStoreDialog, setShowCurrencyStoreDialog] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [gameCode, setGameCode] = useState('');
   const [generatedGameCode, setGeneratedGameCode] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [pasteSuccess, setPasteSuccess] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [authState, setAuthState] = useState<AuthState>(AuthState.UNKNOWN);
+  const [userId, setUserId] = useState<string>('user_' + Math.random().toString(36).substring(2, 15));
 
   // Player information
   const [redPlayerName, setRedPlayerName] = useState('Red Player');
   const [blackPlayerName, setBlackPlayerName] = useState('Blue Player');
-  const [currentPlayerName, setCurrentPlayerName] = useState('');
-  const [playerSide, setPlayerSide] = useState<PlayerSide | null>(null);
 
   // Load saved game code from local storage on component mount
   useEffect(() => {
@@ -829,6 +853,13 @@ const InteractiveBoard: React.FC = () => {
           <div className="text-base sm:text-lg font-semibold">
             {getGameStatusMessage()}
           </div>
+          <div className="flex items-center gap-2">
+            <CurrencyDisplay userId={userId} />
+            <Button size="icon" variant="outline" onClick={() => setShowCurrencyStoreDialog(true)}
+              title="Currency Store" aria-label="Currency Store">
+              <CreditCard className="h-4 w-4" />
+            </Button>
+          </div>
           <div className="flex items-center gap-2 ml-auto">
             <Button size="icon" variant="outline" onClick={handleUndoMove} disabled={gameState.moveHistory.length === 0}
               title="Undo Move" aria-label="Undo Move">
@@ -1201,6 +1232,24 @@ const InteractiveBoard: React.FC = () => {
               Done
             </AlertDialogAction>
           </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Currency Store Dialog */}
+      <AlertDialog open={showCurrencyStoreDialog} onOpenChange={setShowCurrencyStoreDialog}>
+        <AlertDialogContent className="max-w-4xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Currency Store</AlertDialogTitle>
+            <AlertDialogDescription>
+              Purchase virtual currency to unlock premium features.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <CurrencyStore userId={userId} onClose={() => {
+              setShowCurrencyStoreDialog(false);
+              Feedback.dialogClose();
+            }} />
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>
