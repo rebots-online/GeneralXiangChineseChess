@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState, useRef} from 'react';
+import {useEffect, useState, useRef, lazy, Suspense} from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -17,11 +17,13 @@ import {
 } from '@/components/ui/sidebar';
 import { WalkthroughProvider } from '@/contexts/WalkthroughContext';
 import { WalkthroughOverlay } from '@/components/WalkthroughOverlay';
-import InteractiveBoard from '@/components/InteractiveBoard';
 import TutorialCard from '@/components/TutorialCard';
 import AboutDialog from '@/components/AboutDialog';
 import HelpDialog from '@/components/HelpDialog';
 import PolicyLinks from '@/components/PolicyLinks';
+
+// Lazy load the optimized board component
+const OptimizedInteractiveBoard = lazy(() => import('@/components/OptimizedInteractiveBoard'));
 
 
 
@@ -264,7 +266,9 @@ export default function Home() {
               </div>
             </div>
 
-            <InteractiveBoard/>
+            <Suspense fallback={<div className="w-full h-[500px] flex items-center justify-center">Loading game board...</div>}>
+              <OptimizedInteractiveBoard/>
+            </Suspense>
 
             <section className="mt-4 sm:mt-6 md:mt-8 grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <TutorialCard
