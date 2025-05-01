@@ -7,10 +7,10 @@
 ### Board and Rendering
 - [✅] Implement 9×10 grid structure
 - [✅] Position pieces on intersections (not in spaces)
-- [✅] Add palace diagonal lines
+- [✅] Add palace diagonal lines (3×3 size)
 - [✅] Add river boundary with proper text
 - [✅] Add position markers for soldiers and cannons
-- [✅] Implement consistent borders on all sides
+- [✅] Implement consistent 50px borders on all sides
 - [✅] Support dark/light mode themes
 - [ ] Optimize rendering performance
 
@@ -66,10 +66,10 @@
 - [ ] Implement adaptive difficulty
 
 ### Online Multiplayer
-- [✅] Set up Jami-based communication framework
-- [✅] Implement game state synchronization
-- [✅] Add player matching functionality
-- [✅] Implement chat functionality
+- [/] Set up Jami-based communication framework (integration issues)
+- [/] Implement game state synchronization
+- [/] Add player matching functionality
+- [/] Implement chat functionality
 - [ ] Add spectator mode
 - [ ] Implement tournament functionality
 
@@ -115,26 +115,37 @@
 7. ✅ Test production build thoroughly
 8. ✅ Deploy to production environment
 
+## Infrastructure Issues to Resolve
+
+1. [ ] Set up MCP servers for hybrid Knowledge Graph in Windows environment
+2. [ ] Fix Jami integration for online multiplayer
+3. [ ] Fix sidepanel load/save game functionality
+4. [ ] Implement proper error handling for network operations
+
 ## Production Build Completed - May 1, 2025
 
 The production build has been successfully completed with the following achievements:
 
 1. Created an optimized version of the InteractiveBoard component with memoization and performance improvements
-2. Set up environment variables for development and production
-3. Configured Next.js for production with security headers and optimizations
-4. Created a GitHub Actions workflow for CI/CD
-5. Set up testing infrastructure with Jest
-6. Created a Dockerfile for containerized deployment
-7. Updated the README with comprehensive documentation
-8. Successfully built the application for production
+2. Fixed board rendering issues (palace size, board dimensions)
+3. Implemented proper sound module integration
+4. Set up environment variables for development and production
+5. Configured Next.js for production with security headers and optimizations
+6. Created a GitHub Actions workflow for CI/CD
+7. Set up testing infrastructure with Jest
+8. Created a Dockerfile for containerized deployment
+9. Updated the README with comprehensive documentation
+10. Successfully built the application for production
 
 ### Next Steps
 
-1. Continue implementing integration tests for UI components
-2. Add end-to-end tests for game flow
-3. Test multiplayer functionality
-4. Perform cross-browser testing
-5. Test on various device sizes
+1. Set up MCP servers for hybrid Knowledge Graph in Windows environment
+2. Fix Jami integration for online multiplayer
+3. Fix sidepanel load/save game functionality
+4. Continue implementing integration tests for UI components
+5. Add end-to-end tests for game flow
+6. Perform cross-browser testing
+7. Test on various device sizes
 
 ## Legend
 - [✅] = Completed and tested

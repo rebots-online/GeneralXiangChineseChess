@@ -7,22 +7,21 @@ The General Xiang Chinese Chess application is currently in development with the
 - Dark/Light mode toggle with persistent preferences
 - Responsive design for various screen sizes
 - Collapsible sidebar navigation with hamburger menu
-- Palace diagonal lines and river markings with proper styling
+- Palace diagonal lines (3×3 size) and river markings with proper styling
 - Piece rendering with traditional Chinese characters
-- Tutorial system with walkthrough-style onboarding
-- Jami-based game state multicaster for online multiplayer
+- Sound effects for game actions with volume control
+- Basic game mechanics including piece movement, capture, and turn-based play
 
 ## Next Steps
 The following tasks are planned for immediate implementation:
 
 1. **Game Mechanics**
-   - Complete the implementation of piece movement rules
-   - Add turn-based gameplay
-   - Implement check and checkmate detection
    - Add game history and notation
+   - Implement special rules (perpetual check, etc.)
+   - Add save/load game functionality
 
 2. **Multiplayer Features**
-   - Complete local multiplayer functionality
+   - Fix Jami integration for online multiplayer
    - Implement basic AI for single player
    - Add user accounts and profiles
 
@@ -31,10 +30,10 @@ The following tasks are planned for immediate implementation:
    - Add opening strategy tutorials
    - Add advanced tactics tutorials
 
-4. **PWA & Mobile**
-   - Configure for PWA installation
-   - Optimize for mobile screens
-   - Prepare for Android store listing
+4. **Infrastructure**
+   - Set up MCP servers for hybrid Knowledge Graph
+   - Configure for Windows environment
+   - Fix sidepanel load/save game functionality
 
 ## Branding Guidelines
 - The project should be branded as 'General Xiang: Learn Chinese Chess & Play Opponent Across the Globe'
@@ -50,3 +49,7 @@ The following tasks are planned for immediate implementation:
 - Refactor the board rendering for better performance
 - Improve responsive design for very small screens
 - Optimize dark mode implementation
+- Fix MCP server configuration for Windows environment (see `docs\MCP_SERVER_CONFIGURATION.md`)
+- Resolve Jami integration issues (see `docs\JAMI_INTEGRATION_ISSUES.md` and `docs\JAMI_WINDOWS_DIAGNOSTIC_CHECKLIST.md`)
+- Fix sidepanel load/save game functionality
+- Implement proper error handling for network operations

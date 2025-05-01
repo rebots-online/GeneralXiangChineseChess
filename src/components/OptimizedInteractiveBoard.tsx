@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Undo, Sun, Moon, RotateCcw, Save, Volume2 } from 'lucide-react';
 import { GameState, GameStatus, initializeGameState, startGame, makeMove, selectPiece, deselectPiece, undoMove } from '@/game/gameState';
 import { Board, Piece, PlayerSide } from '@/game/pieces';
-import * as Feedback from '@/lib/sound';
+import { Feedback, loadSoundSettings, setSoundEnabled, setHapticsEnabled, setMasterVolume } from '@/lib/sound';
 import { useToast } from '@/hooks/use-toast';
 
 // Memoized sub-components
@@ -139,7 +139,7 @@ const OptimizedInteractiveBoard: React.FC = () => {
     document.documentElement.classList.toggle('dark', shouldUseDarkMode);
 
     // Load sound settings
-    Feedback.loadSoundSettings();
+    loadSoundSettings();
     setSoundVolume(parseFloat(localStorage.getItem('masterVolume') || '0.7'));
     setSoundEnabled(localStorage.getItem('soundEnabled') !== 'false');
     setHapticsEnabled(localStorage.getItem('hapticsEnabled') !== 'false');
@@ -156,16 +156,16 @@ const OptimizedInteractiveBoard: React.FC = () => {
 
       return (
         <>
-          {/* Top palace (black side) */}
-          <svg className="absolute" style={{ top: 0, left: '150px', width: '150px', height: '150px', zIndex: 2, pointerEvents: 'none' }}>
-            <line x1="0" y1="0" x2="150" y2="150" stroke={lineColor} strokeWidth="1" />
-            <line x1="150" y1="0" x2="0" y2="150" stroke={lineColor} strokeWidth="1" />
+          {/* Top palace (black side) - Correct 3x3 size */}
+          <svg className="absolute" style={{ top: 0, left: '150px', width: '100px', height: '100px', zIndex: 2, pointerEvents: 'none' }}>
+            <line x1="0" y1="0" x2="100" y2="100" stroke={lineColor} strokeWidth="1" />
+            <line x1="100" y1="0" x2="0" y2="100" stroke={lineColor} strokeWidth="1" />
           </svg>
 
-          {/* Bottom palace (red side) */}
-          <svg className="absolute" style={{ bottom: 0, left: '150px', width: '150px', height: '150px', zIndex: 2, pointerEvents: 'none' }}>
-            <line x1="0" y1="0" x2="150" y2="150" stroke={lineColor} strokeWidth="1" />
-            <line x1="150" y1="0" x2="0" y2="150" stroke={lineColor} strokeWidth="1" />
+          {/* Bottom palace (red side) - Correct 3x3 size */}
+          <svg className="absolute" style={{ bottom: 0, left: '150px', width: '100px', height: '100px', zIndex: 2, pointerEvents: 'none' }}>
+            <line x1="0" y1="0" x2="100" y2="100" stroke={lineColor} strokeWidth="1" />
+            <line x1="100" y1="0" x2="0" y2="100" stroke={lineColor} strokeWidth="1" />
           </svg>
         </>
       );
@@ -182,7 +182,7 @@ const OptimizedInteractiveBoard: React.FC = () => {
 
     // 1. First, render the grid lines (8 horizontal, 9 vertical)
     // Horizontal lines (9 lines for 10 rows)
-    for (let row = 0; row < 10; row++) {
+    for (let row = 0; row < 9; row++) {
       elements.push(
         <div
           key={`h-line-${row}`}
@@ -190,7 +190,7 @@ const OptimizedInteractiveBoard: React.FC = () => {
           style={{
             top: `${row * cellSize}px`,
             left: 0,
-            width: '100%',
+            width: '400px', // 8 columns * 50px
             height: row === 4 ? '2px' : '1px', // Thicker line for river
             backgroundColor: row === 4 ? riverColor : lineColor,
             borderStyle: row === 4 ? 'dashed' : 'solid',
@@ -202,7 +202,7 @@ const OptimizedInteractiveBoard: React.FC = () => {
     }
 
     // Vertical lines (8 lines for 9 columns)
-    for (let col = 0; col < 9; col++) {
+    for (let col = 0; col < 8; col++) {
       // Top half (above river)
       elements.push(
         <div
@@ -229,7 +229,7 @@ const OptimizedInteractiveBoard: React.FC = () => {
             top: '250px', // 5 rows * 50px
             left: `${col * cellSize}px`,
             width: '1px',
-            height: '250px', // 5 rows * 50px
+            height: '200px', // 4 rows * 50px
             backgroundColor: lineColor,
             zIndex: 1,
             pointerEvents: 'none'
@@ -246,7 +246,7 @@ const OptimizedInteractiveBoard: React.FC = () => {
         style={{
           top: '200px', // 4 rows * 50px
           left: '50px', // 1 column * 50px
-          width: '350px', // 7 columns * 50px
+          width: '300px', // 6 columns * 50px
           height: '50px',
           zIndex: 2,
           pointerEvents: 'none'
@@ -394,14 +394,13 @@ const OptimizedInteractiveBoard: React.FC = () => {
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const volume = parseFloat(e.target.value);
     setSoundVolume(volume);
-    Feedback.setMasterVolume(volume);
+    setMasterVolume(volume);
   }, []);
 
   // Handle sound toggle with useCallback
   const handleSoundToggle = useCallback(() => {
     const newSoundEnabled = !soundEnabled;
     setSoundEnabled(newSoundEnabled);
-    Feedback.setSoundEnabled(newSoundEnabled);
     Feedback.toggle();
   }, [soundEnabled]);
 
@@ -409,7 +408,6 @@ const OptimizedInteractiveBoard: React.FC = () => {
   const handleHapticsToggle = useCallback(() => {
     const newHapticsEnabled = !hapticsEnabled;
     setHapticsEnabled(newHapticsEnabled);
-    Feedback.setHapticsEnabled(newHapticsEnabled);
     Feedback.toggle();
   }, [hapticsEnabled]);
 
@@ -473,11 +471,11 @@ const OptimizedInteractiveBoard: React.FC = () => {
           <MemoizedPiece
             piece={piece}
             isDarkMode={isDarkMode}
-            isSelected={
+            isSelected={!!(
               gameState.board.selectedPiece &&
               gameState.board.selectedPiece.position[0] === row &&
               gameState.board.selectedPiece.position[1] === col
-            }
+            )}
             isCurrentTurn={gameState.currentTurn === piece.side}
             onClick={() => handleCellClick(row, col)}
           />
@@ -564,12 +562,12 @@ const OptimizedInteractiveBoard: React.FC = () => {
         backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)',
         maxWidth: '100%',
         margin: '0 auto',
-        padding: '50px 50px 50px 50px', // Equal padding on all sides
+        padding: '50px', // Keep the 50px padding around all sides
         boxSizing: 'content-box'
       }}>
         <div className="relative" style={{
-          width: '450px', // 9 columns * 50px
-          height: '500px', // 10 rows * 50px
+          width: '400px', // 8 columns * 50px (pieces are placed on intersections, not cells)
+          height: '450px', // 9 rows * 50px (pieces are placed on intersections, not cells)
           margin: '0 auto',
           border: `2px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'hsl(var(--border))'}`,
           boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
@@ -578,8 +576,8 @@ const OptimizedInteractiveBoard: React.FC = () => {
           {/* Palace diagonal lines - proper 3x3 implementation */}
           {palatialAnchors}
           <div className="relative" style={{
-            width: '450px',
-            height: '500px',
+            width: '400px',
+            height: '450px',
             backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)'
           }}>
             {/* Render board grid */}
