@@ -1,4 +1,24 @@
-import { Board, Piece, PlayerSide, isValidMove, isInCheck, isCheckmate, wouldBeInCheck, getValidMoves, initializeBoard } from './pieces';
+import {
+  Board,
+  Piece,
+  PlayerSide,
+  PieceType,
+  isValidMove,
+  isInCheck,
+  isCheckmate,
+  wouldBeInCheck,
+  getValidMoves,
+  initializeBoard
+} from './pieces';
+
+// Define draw conditions
+export enum DrawReason {
+  PERPETUAL_CHECK = 'perpetual_check',
+  STALEMATE = 'stalemate',
+  MUTUAL_AGREEMENT = 'mutual_agreement',
+  POSITION_REPETITION = 'position_repetition',
+  INSUFFICIENT_MATERIAL = 'insufficient_material',
+}
 
 // Define game state interface
 export interface GameState {
@@ -8,6 +28,9 @@ export interface GameState {
   gameStatus: GameStatus;
   check: boolean;
   checkmate: boolean;
+  drawOffered: boolean;
+  positionHistory: string[];
+  lastCaptureMoveIndex: number;
 }
 
 // Define move interface
@@ -28,15 +51,176 @@ export enum GameStatus {
   DRAW = 'draw',
 }
 
+// Draw conditions helper functions
+export function isDraw(gameState: GameState): { isDraw: boolean; reason?: DrawReason } {
+  // Check stalemate
+  if (isStalemate(gameState)) {
+    return { isDraw: true, reason: DrawReason.STALEMATE };
+  }
+
+  // Check position repetition (same position occurring 3 times)
+  if (isPositionRepetition(gameState)) {
+    return { isDraw: true, reason: DrawReason.POSITION_REPETITION };
+  }
+
+  // Check insufficient material
+  if (hasInsufficientMaterial(gameState)) {
+    return { isDraw: true, reason: DrawReason.INSUFFICIENT_MATERIAL };
+  }
+
+  // Check perpetual check
+  if (isPerpetualCheck(gameState)) {
+    return { isDraw: true, reason: DrawReason.PERPETUAL_CHECK };
+  }
+
+  return { isDraw: false };
+}
+
+// Check for stalemate - no legal moves but not in check
+function isStalemate(gameState: GameState): boolean {
+  if (gameState.check) return false;
+
+  const currentSidePieces = gameState.board.pieces.filter(p => p.side === gameState.currentTurn);
+  return currentSidePieces.every(piece => getValidMoves(gameState.board, piece).length === 0);
+}
+
+// Check for position repetition
+function isPositionRepetition(gameState: GameState): boolean {
+  const currentPosition = serializePosition(gameState.board);
+  const occurrences = gameState.positionHistory.filter(pos => pos === currentPosition).length;
+  return occurrences >= 3;
+}
+
+// Check for insufficient material
+function hasInsufficientMaterial(gameState: GameState): boolean {
+  const pieces = gameState.board.pieces;
+  
+  // Count pieces for each side
+  const redPieces = pieces.filter(p => p.side === PlayerSide.RED);
+  const blackPieces = pieces.filter(p => p.side === PlayerSide.BLACK);
+
+  // If either side has only their general left
+  if (redPieces.length === 1 && redPieces[0].type === PieceType.GENERAL ||
+      blackPieces.length === 1 && blackPieces[0].type === PieceType.GENERAL) {
+    return true;
+  }
+
+  // Add more specific insufficient material conditions here
+  // For example: two generals and one horse might be insufficient
+
+  return false;
+}
+
+// Check for perpetual check
+function isPerpetualCheck(gameState: GameState): boolean {
+  // Need at least 6 moves to have 3 repeated checks
+  if (gameState.moveHistory.length < 6) return false;
+
+  // Get the last 6 moves
+  const lastMoves = gameState.moveHistory.slice(-6);
+  const checkingMoves = lastMoves.filter((_, index) =>
+    index % 2 === 0 && isInCheck(recreateBoardState(gameState, index), gameState.currentTurn)
+  );
+
+  // If the last 3 moves by the same player were all checks
+  return checkingMoves.length === 3;
+}
+
+// Helper function to serialize board position for repetition detection
+function serializePosition(board: Board): string {
+  return board.pieces
+    .sort((a, b) => a.position[0] - b.position[0] || a.position[1] - b.position[1])
+    .map(p => `${p.type}${p.side}${p.position.join(',')}`)
+    .join('|');
+}
+
+// Helper function to recreate board state at a specific move index
+function recreateBoardState(gameState: GameState, moveIndex: number): Board {
+  const board = initializeBoard();
+  for (let i = 0; i <= moveIndex; i++) {
+    const move = gameState.moveHistory[i];
+    applyMove(board, move);
+  }
+  return board;
+}
+
+// Helper function to apply a move to a board
+function applyMove(board: Board, move: Move): void {
+  const pieceIndex = board.pieces.findIndex(
+    p => p.position[0] === move.from[0] && p.position[1] === move.from[1]
+  );
+
+  if (pieceIndex === -1) return;
+
+  // Remove captured piece if any
+  if (move.capturedPiece) {
+    const capturedIndex = board.pieces.findIndex(
+      p => p.position[0] === move.to[0] && p.position[1] === move.to[1]
+    );
+    if (capturedIndex !== -1) {
+      board.pieces.splice(capturedIndex, 1);
+    }
+  }
+
+  // Update piece position
+  board.pieces[pieceIndex] = {
+    ...board.pieces[pieceIndex],
+    position: [...move.to]
+  };
+}
+
+// Function to initialize position history
+function initializePositionHistory(board: Board): string[] {
+  return [serializePosition(board)];
+}
+
 // Initialize a new game state
 export function initializeGameState(): GameState {
+  const board = initializeBoard();
   return {
-    board: initializeBoard(),
+    board,
     currentTurn: PlayerSide.RED, // Red goes first
     moveHistory: [],
     gameStatus: GameStatus.NOT_STARTED,
     check: false,
     checkmate: false,
+    drawOffered: false,
+    positionHistory: initializePositionHistory(board),
+    lastCaptureMoveIndex: -1,
+  };
+}
+
+// Function to offer a draw
+export function offerDraw(gameState: GameState): GameState {
+  if (gameState.gameStatus !== GameStatus.IN_PROGRESS) {
+    return gameState;
+  }
+  return {
+    ...gameState,
+    drawOffered: true,
+  };
+}
+
+// Function to accept a draw offer
+export function acceptDraw(gameState: GameState): GameState {
+  if (!gameState.drawOffered || gameState.gameStatus !== GameStatus.IN_PROGRESS) {
+    return gameState;
+  }
+  return {
+    ...gameState,
+    drawOffered: false,
+    gameStatus: GameStatus.DRAW,
+  };
+}
+
+// Function to decline a draw offer
+export function declineDraw(gameState: GameState): GameState {
+  if (!gameState.drawOffered) {
+    return gameState;
+  }
+  return {
+    ...gameState,
+    drawOffered: false,
   };
 }
 
@@ -113,10 +297,14 @@ export function makeMove(gameState: GameState, piece: Piece, targetRow: number, 
   const isOpponentInCheck = isInCheck(board, nextTurn);
   const isOpponentInCheckmate = isOpponentInCheck && isCheckmate(board, nextTurn);
   
-  // Update game status if checkmate
-  let gameStatus = newGameState.gameStatus;
+  // Update game status if checkmate or draw
+  let gameStatus: GameStatus = newGameState.gameStatus;
+  const drawState = isDraw(newGameState);
+
   if (isOpponentInCheckmate) {
     gameStatus = newGameState.currentTurn === PlayerSide.RED ? GameStatus.RED_WON : GameStatus.BLACK_WON;
+  } else if (drawState.isDraw) {
+    gameStatus = GameStatus.DRAW;
   }
   
   // Update the game state
@@ -125,7 +313,9 @@ export function makeMove(gameState: GameState, piece: Piece, targetRow: number, 
     board,
     currentTurn: nextTurn,
     moveHistory: [...newGameState.moveHistory, move],
-    gameStatus,
+    positionHistory: [...newGameState.positionHistory, serializePosition(board)],
+    lastCaptureMoveIndex: capturedPiece ? newGameState.moveHistory.length : newGameState.lastCaptureMoveIndex,
+    gameStatus: isDraw(newGameState).isDraw ? GameStatus.DRAW : gameStatus,
     check: isOpponentInCheck,
     checkmate: isOpponentInCheckmate,
   };
