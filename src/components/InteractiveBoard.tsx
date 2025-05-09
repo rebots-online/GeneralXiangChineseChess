@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   GameState,
@@ -12,7 +12,7 @@ import {
   deselectPiece,
   undoMove
 } from '@/game/gameState';
-import { PlayerSide } from '@/game/pieces';
+import { PlayerSide, Piece } from '@/game/pieces';
 import { Undo, Sun, Moon, RotateCcw, Save, Volume2, Settings, CreditCard, LogIn } from 'lucide-react';
 import {
   AlertDialog,
@@ -39,6 +39,8 @@ import AuthService, { AuthState, User } from "@/services/AuthService";
 const cellSize = 50; // Size between intersections
 const boardWidth = cellSize * 8; // 8 spaces between 9 intersections horizontally
 const boardHeight = cellSize * 9; // 9 spaces between 10 intersections vertically
+
+// CSS for animations is added directly to the component styles
 
 const setupPalatialAnchors = (isDarkMode: boolean) => (
   <div className="absolute" style={{
@@ -98,12 +100,35 @@ const setupPalatialAnchors = (isDarkMode: boolean) => (
   </div>
 );
 
+// Drag state interface - based on chess example
+interface DragState {
+  dragging: boolean;
+  piece: Piece | null;
+  originRow: number | null;
+  originCol: number | null;
+  dragImage: HTMLDivElement | null;
+  validMoves: [number, number][];
+}
+
 const InteractiveBoard: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(initializeGameState());
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showNewGameDialog, setShowNewGameDialog] = useState(false);
   const [showSaveGameDialog, setShowSaveGameDialog] = useState(false);
   const { toast } = useToast();
+
+  // Drag state
+  const [dragState, setDragState] = useState<DragState>({
+    dragging: false,
+    piece: null,
+    originRow: null,
+    originCol: null,
+    dragImage: null,
+    validMoves: []
+  });
+
+  // Ref for the board container
+  const boardContainerRef = useRef<HTMLDivElement>(null);
 
   // Define game control functions first
   const handleNewGame = () => {
@@ -189,6 +214,7 @@ const InteractiveBoard: React.FC = () => {
     }
   };
 
+  // Initial setup effect
   useEffect(() => {
     // Check localStorage and system preference for dark mode
     const storedTheme = localStorage.getItem('theme');
@@ -249,6 +275,169 @@ const InteractiveBoard: React.FC = () => {
       document.removeEventListener('click', handleUserInteraction);
     };
   }, []);
+
+  // Function to get board coordinates from mouse position
+  const getBoardCoordinates = (clientX: number, clientY: number): [number, number] | null => {
+    if (!boardContainerRef.current) {
+      return null;
+    }
+
+    const boardRect = boardContainerRef.current.getBoundingClientRect();
+
+    // Calculate position relative to the board
+    const relativeX = clientX - boardRect.left;
+    const relativeY = clientY - boardRect.top;
+
+    // Convert to board coordinates (row, col) using floor with half-cell offset
+    // This ensures more accurate snapping to grid intersections
+    const col = Math.floor((relativeX + cellSize/2) / cellSize);
+    const row = Math.floor((relativeY + cellSize/2) / cellSize);
+
+    // Check if within board boundaries
+    if (row >= 0 && row < 10 && col >= 0 && col < 9) {
+      return [row, col];
+    }
+
+    return null;
+  };
+
+  // Define cleanupDrag to remove drag image and reset state
+  const cleanupDrag = useCallback(() => {
+    // Remove the drag image from the DOM
+    if (dragState.dragImage) {
+      try {
+        document.body.removeChild(dragState.dragImage);
+      } catch (error) {
+        console.error('Error removing drag image:', error);
+      }
+    }
+
+    // Reset user-select style
+    document.body.style.userSelect = '';
+
+    // Reset drag state
+    setDragState({
+      dragging: false,
+      piece: null,
+      originRow: null,
+      originCol: null,
+      dragImage: null,
+      validMoves: []
+    });
+  }, [dragState.dragImage]);
+
+  // Handle mouse up (drop the piece)
+  const onMouseUpPiece = useCallback((e: MouseEvent) => {
+    // Exit if not dragging or no piece
+    if (!dragState.dragging || !dragState.piece) {
+      return;
+    }
+
+    // Get the drop coordinates on the board
+    const dropCoordinates = getBoardCoordinates(e.clientX, e.clientY);
+
+    if (dropCoordinates) {
+      const [targetRow, targetCol] = dropCoordinates;
+
+      // Check if this is a valid move
+      const isValidMove = dragState.validMoves.some(
+        ([r, c]) => r === targetRow && c === targetCol
+      );
+
+      if (isValidMove) {
+        // Check if this is a capture move
+        const pieceAtTarget = gameState.board.pieces.find(
+          p => p.position[0] === targetRow && p.position[1] === targetCol
+        );
+
+        // Make the move
+        const newGameState = makeMove(gameState, dragState.piece, targetRow, targetCol);
+        setGameState(newGameState);
+
+        // Play appropriate sound
+        if (pieceAtTarget) {
+          Feedback.pieceCapture();
+        } else {
+          Feedback.pieceMove();
+        }
+
+        // Check if the move resulted in check
+        if (newGameState.check) {
+          setTimeout(() => Feedback.check(), 300);
+        }
+
+        // Check if the game ended
+        if (newGameState.gameStatus !== GameStatus.IN_PROGRESS) {
+          setTimeout(() => Feedback.gameEnd(), 500);
+        }
+      } else {
+        // Invalid move - play error sound
+        Feedback.invalidMove();
+
+        // Deselect the piece
+        const newGameState = deselectPiece(gameState);
+        setGameState(newGameState);
+      }
+    } else {
+      // Dropped outside the board - deselect the piece
+      const newGameState = deselectPiece(gameState);
+      setGameState(newGameState);
+      Feedback.toggle();
+    }
+
+    // Clean up drag state
+    cleanupDrag();
+  }, [dragState, gameState, cleanupDrag, getBoardCoordinates]);
+
+
+
+  // Use ref to track drag state without causing listener rebinding
+  const dragStateRef = useRef<DragState>(dragState);
+
+  // Update ref when drag state changes
+  useEffect(() => {
+    dragStateRef.current = dragState;
+  }, [dragState]);
+
+  // Setup drag and drop event listeners - with stable references
+  useEffect(() => {
+    // Mouse move handler for dragging
+    const handleMouseMove = (e: MouseEvent) => {
+      if (dragStateRef.current.dragging && dragStateRef.current.dragImage) {
+        // Position the drag image under the cursor
+        positionDragImage({clientX: e.clientX, clientY: e.clientY}, dragStateRef.current.dragImage);
+      }
+    };
+
+    // Mouse up handler for dropping
+    const handleMouseUp = (e: MouseEvent) => {
+      if (dragStateRef.current.dragging) {
+        onMouseUpPiece(e);
+      }
+    };
+
+    // Add event listeners once
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    // Clean up on unmount only
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [onMouseUpPiece]); // Only depends on onMouseUpPiece, not dragState
+
+  // Helper function to position the drag image under the cursor
+  const positionDragImage = (e: {clientX: number, clientY: number}, dragImage: HTMLDivElement) => {
+    if (!dragImage) return;
+
+    // Center the drag image under the cursor
+    const halfWidth = 19; // Half of the piece width (38px)
+    const halfHeight = 19; // Half of the piece height (38px)
+
+    dragImage.style.left = (e.clientX - halfWidth) + "px";
+    dragImage.style.top = (e.clientY - halfHeight) + "px";
+  };
 
 
 
@@ -473,6 +662,136 @@ const InteractiveBoard: React.FC = () => {
     };
   }, []);
 
+
+
+  // Create a drag image element for the piece being dragged
+  const createDragImage = (piece: Piece): HTMLDivElement => {
+    // Create a div to hold the dragged piece
+    const dragImage = document.createElement('div');
+    dragImage.className = 'piece-drag-image';
+
+    // Get piece colors based on side
+    const isRedPiece = piece.side === PlayerSide.RED;
+    const pieceColor = isRedPiece ? 'hsl(5, 100%, 27.3%)' : 'hsl(215, 100%, 35%)';
+    const pieceColorDark = isRedPiece ? 'hsl(5, 100%, 70%)' : 'hsl(215, 100%, 75%)';
+
+    // Style the drag image
+    Object.assign(dragImage.style, {
+      position: 'fixed',
+      width: '38px',
+      height: '38px',
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDarkMode ? 'hsl(0, 0%, 20%)' : 'hsl(36, 50%, 90%)',
+      border: `2px solid ${isDarkMode ? 'hsl(0, 0%, 40%)' : 'hsl(36, 30%, 60%)'}`,
+      boxShadow: '0 6px 12px rgba(0, 0, 0, 0.3)',
+      transform: 'scale(1.1)',
+      opacity: '0.9',
+      pointerEvents: 'none',
+      zIndex: '1000',
+      left: '-1000px', // Start off-screen
+      top: '-1000px'
+    });
+
+    // Create the piece symbol
+    const symbol = document.createElement('span');
+
+    // Style the symbol
+    Object.assign(symbol.style, {
+      fontSize: '1.4em',
+      fontWeight: 'bold',
+      fontFamily: '"Noto Serif SC", serif',
+      color: isDarkMode ? pieceColorDark : pieceColor,
+      textShadow: isDarkMode ? '1px 1px 2px rgba(0, 0, 0, 0.7)' : '1px 1px 1px rgba(0, 0, 0, 0.3)'
+    });
+
+    // Add webkit text stroke
+    symbol.style.setProperty('-webkit-text-stroke',
+      `0.5px ${isDarkMode ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)'}`);
+
+    // Set the symbol text
+    symbol.textContent = piece.symbol;
+
+    // Add the symbol to the drag image
+    dragImage.appendChild(symbol);
+
+    // Add the drag image to the document body
+    document.body.appendChild(dragImage);
+
+    return dragImage;
+  };
+
+  // Handle mouse down on a piece (start dragging or toggle selection)
+  const onMouseDownPiece = (e: React.MouseEvent, piece: Piece) => {
+    // Only handle left mouse button (button 0)
+    if (e.button !== 0) return;
+
+    // Only allow interaction if it's the current player's turn and game is in progress
+    if (gameState.gameStatus !== GameStatus.IN_PROGRESS || piece.side !== gameState.currentTurn) {
+      return;
+    }
+
+    // Prevent default browser drag behavior
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Get the current position
+    const [originRow, originCol] = piece.position;
+
+    // Check if this piece is already selected (toggle selection off)
+    if (gameState.board.selectedPiece &&
+        gameState.board.selectedPiece.position[0] === originRow &&
+        gameState.board.selectedPiece.position[1] === originCol) {
+
+      // Deselect the piece
+      const newGameState = deselectPiece(gameState);
+      setGameState(newGameState);
+
+      // Play toggle sound
+      Feedback.toggle();
+
+      return;
+    }
+
+    // Get valid moves for this piece by selecting it in the game state
+    const newGameState = selectPiece(gameState, originRow, originCol);
+    const validMoves = [...newGameState.board.validMoves];
+
+    // Play piece selection sound
+    Feedback.pieceSelect();
+
+    // Update game state with selected piece
+    setGameState(newGameState);
+
+    // Create a drag image (visual representation that follows cursor)
+    const dragImage = createDragImage(piece);
+
+    // Position the drag image at the mouse cursor
+    positionDragImage({clientX: e.clientX, clientY: e.clientY}, dragImage);
+
+    // Set drag state
+    setDragState({
+      dragging: true,
+      piece: piece,
+      originRow: originRow,
+      originCol: originCol,
+      dragImage: dragImage,
+      validMoves: validMoves
+    });
+
+    // Prevent text selection during drag
+    document.body.style.userSelect = 'none';
+  };
+
+
+
+  // No duplicate function needed
+
+  // No old drag handlers needed anymore
+
+  // Click handler for piece selection and movement
   const handleCellClick = (row: number, col: number) => {
     // If game is not in progress, do nothing
     if (gameState.gameStatus !== GameStatus.IN_PROGRESS) {
@@ -482,8 +801,21 @@ const InteractiveBoard: React.FC = () => {
     const { board } = gameState;
     const { selectedPiece, validMoves } = board;
 
+    // Get the piece at the clicked position (if any)
+    const pieceAtCell = board.pieces.find(p => p.position[0] === row && p.position[1] === col);
+
     // If a piece is already selected
     if (selectedPiece) {
+      // Check if clicking on the same piece that's already selected (toggle selection)
+      if (selectedPiece.position[0] === row && selectedPiece.position[1] === col) {
+        // Deselect the piece
+        const newGameState = deselectPiece(gameState);
+        setGameState(newGameState);
+        // Play toggle sound
+        Feedback.toggle();
+        return;
+      }
+
       // Check if the clicked cell is a valid move
       const isValidMoveTarget = validMoves.some(([r, c]) => r === row && c === col);
 
@@ -517,8 +849,6 @@ const InteractiveBoard: React.FC = () => {
         }
       } else {
         // Check if clicking on another piece of the same side
-        const pieceAtCell = board.pieces.find(p => p.position[0] === row && p.position[1] === col);
-
         if (pieceAtCell && pieceAtCell.side === gameState.currentTurn) {
           // Select the new piece
           const newGameState = selectPiece(gameState, row, col);
@@ -565,14 +895,18 @@ const InteractiveBoard: React.FC = () => {
                       gameState.board.selectedPiece.position[0] === row &&
                       gameState.board.selectedPiece.position[1] === col;
 
+    // Check if this piece is being dragged
+    const isDragging = dragState.dragging &&
+                      dragState.piece?.id === piece.id;
+
     const chipStyle: React.CSSProperties = {
       width: '38px', // Piece size
       height: '38px',
       borderRadius: '50%',
-      display: 'flex',
+      display: isDragging ? 'none' : 'flex', // Hide the original piece when dragging
       alignItems: 'center',
       justifyContent: 'center',
-      cursor: gameState.currentTurn === piece.side ? 'pointer' : 'default',
+      cursor: gameState.currentTurn === piece.side ? 'grab' : 'default', // Use grab cursor for draggable pieces
       transition: 'all 0.2s ease-out',
       backgroundColor: isDarkMode ? 'hsl(0, 0%, 20%)' : 'hsl(36, 50%, 90%)', // Dark/Light wood background
       border: `2px solid ${isDarkMode ? 'hsl(0, 0%, 40%)' : 'hsl(36, 30%, 60%)'}`, // Outer ring
@@ -596,6 +930,12 @@ const InteractiveBoard: React.FC = () => {
         onClick={(e) => {
           e.stopPropagation();
           handleCellClick(row, col);
+        }}
+        onMouseDown={(e) => {
+          if (gameState.currentTurn === piece.side) {
+            e.stopPropagation();
+            onMouseDownPiece(e, piece);
+          }
         }}
         role="button"
         aria-label={`Piece ${piece.symbol} at ${row}, ${col}`}
@@ -711,6 +1051,27 @@ const InteractiveBoard: React.FC = () => {
       for (let col = 0; col < 9; col++) {
         const isValidMove = gameState.board.validMoves.some(([r, c]) => r === row && c === col);
 
+        // Check if this position is a valid drop position during dragging
+        const isValidDropPosition = dragState.dragging &&
+                                   dragState.validMoves.some(([r, c]) => r === row && c === col);
+
+        // Get current mouse position from React state
+        // Determine if this is a potential drop position during dragging using proper coordinate comparison
+        const currentCoords = mousePos ? getBoardCoordinates(mousePos.x, mousePos.y) : null;
+        const isPotentialDropPosition = dragState.dragging &&
+                                       currentCoords !== null &&
+                                       currentCoords[0] === row &&
+                                       currentCoords[1] === col;
+
+        // Determine cursor style
+        let cursorStyle = 'default';
+        if (isValidMove || isValidDropPosition) {
+          cursorStyle = 'pointer';
+        }
+        if (dragState.dragging && isPotentialDropPosition) {
+          cursorStyle = isValidDropPosition ? 'grabbing' : 'not-allowed';
+        }
+
         elements.push(
           <div
             key={`intersection-${row}-${col}`}
@@ -721,29 +1082,68 @@ const InteractiveBoard: React.FC = () => {
               width: '20px',
               height: '20px',
               transform: 'translate(-10px, -10px)',
-              cursor: isValidMove ? 'pointer' : 'default',
+              cursor: cursorStyle,
               zIndex: 3,
-              // For debugging: backgroundColor: 'rgba(255, 0, 0, 0.1)',
             }}
             onClick={() => handleCellClick(row, col)}
             role="button"
             aria-label={`Board position ${row}, ${col}`}
           >
             {/* Valid move indicator */}
-            {isValidMove && !gameState.board.pieces.find(p => p.position[0] === row && p.position[1] === col) && (
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                width: '14px',
-                height: '14px',
-                borderRadius: '50%',
-                backgroundColor: isDarkMode ? 'rgba(0, 255, 0, 0.4)' : 'rgba(0, 128, 0, 0.4)',
-                border: `2px solid ${isDarkMode ? 'rgba(0, 255, 0, 0.8)' : 'rgba(0, 128, 0, 0.8)'}`,
-                transform: 'translate(-50%, -50%)',
-                pointerEvents: 'none',
-                zIndex: 5,
-              }} />
+            {((isValidMove && !dragState.dragging) || isValidDropPosition) &&
+             !gameState.board.pieces.find(p => p.position[0] === row && p.position[1] === col) && (
+              isPotentialDropPosition && isValidDropPosition ? (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    backgroundColor: isDarkMode ? 'rgba(0, 255, 0, 0.4)' : 'rgba(0, 128, 0, 0.4)',
+                    border: `2px solid ${isDarkMode ? 'rgba(0, 255, 0, 0.8)' : 'rgba(0, 128, 0, 0.8)'}`,
+                    transform: 'translate(-50%, -50%)',
+                    pointerEvents: 'none',
+                    zIndex: 5,
+                    animation: 'pulse 1s infinite',
+                  }}
+                />
+              ) : (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  width: '14px',
+                  height: '14px',
+                  borderRadius: '50%',
+                  backgroundColor: isDarkMode ? 'rgba(0, 255, 0, 0.4)' : 'rgba(0, 128, 0, 0.4)',
+                  border: `2px solid ${isDarkMode ? 'rgba(0, 255, 0, 0.8)' : 'rgba(0, 128, 0, 0.8)'}`,
+                  transform: 'translate(-50%, -50%)',
+                  pointerEvents: 'none',
+                  zIndex: 5,
+                }} />
+              )
+            )}
+
+            {/* Invalid drop indicator */}
+            {dragState.dragging && isPotentialDropPosition && !isValidDropPosition && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  width: '14px',
+                  height: '14px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 0, 0, 0.4)',
+                  border: '2px solid rgba(255, 0, 0, 0.8)',
+                  transform: 'translate(-50%, -50%)',
+                  pointerEvents: 'none',
+                  zIndex: 5,
+                  animation: 'pulse 1s infinite',
+                }}
+              />
             )}
           </div>
         );
@@ -769,19 +1169,50 @@ const InteractiveBoard: React.FC = () => {
           {renderPiece(row, col)}
 
           {/* Capture Move Indicator (Circle around opponent piece) */}
-          {isValidMove && piece.side !== gameState.currentTurn && (
-            <div style={{
-              position: 'absolute',
-              top: '19px',
-              left: '19px',
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              border: `3px dashed ${isDarkMode ? 'rgba(255, 0, 0, 0.8)' : 'rgba(180, 0, 0, 0.8)'}`,
-              transform: 'translate(-50%, -50%)',
-              pointerEvents: 'none',
-              zIndex: 11,
-            }} />
+          {((isValidMove && !dragState.dragging) ||
+            (dragState.dragging && dragState.validMoves.some(([r, c]) => r === row && c === col))) &&
+            piece && piece.side !== gameState.currentTurn && (
+            (() => {
+              // Use React state for mouse position with proper coordinate comparison
+              if (!dragState.dragging || !mousePos) return false;
+              const currentCoords = getBoardCoordinates(mousePos.x, mousePos.y);
+              return currentCoords !== null &&
+                     currentCoords[0] === row &&
+                     currentCoords[1] === col;
+            })() ? (
+              // Pulsing capture indicator when dragging over
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '19px',
+                  left: '19px',
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  border: `3px dashed ${isDarkMode ? 'rgba(255, 0, 0, 0.8)' : 'rgba(180, 0, 0, 0.8)'}`,
+                  transform: 'translate(-50%, -50%)',
+                  pointerEvents: 'none',
+                  zIndex: 11,
+                  animation: 'pulse 1s infinite',
+                }}
+              />
+            ) : (
+              // Static capture indicator
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '19px',
+                  left: '19px',
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  border: `3px dashed ${isDarkMode ? 'rgba(255, 0, 0, 0.8)' : 'rgba(180, 0, 0, 0.8)'}`,
+                  transform: 'translate(-50%, -50%)',
+                  pointerEvents: 'none',
+                  zIndex: 11,
+                }}
+              />
+            )
           )}
         </div>
       );
@@ -813,8 +1244,336 @@ const InteractiveBoard: React.FC = () => {
     }
   };
 
+  // State for tracking mouse position
+  const [mousePos, setMousePos] = useState<{x: number, y: number} | null>(null);
+
+  // Debug logging for mouse position and board coordinates
+  const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+
+  // Neural overlay state and refs
+  const [showNeuralOverlay, setShowNeuralOverlay] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const lastTimeRef = useRef<number>(0);
+  const dragTrailRef = useRef<Array<{x: number, y: number, age: number}>>([]);
+
+  // Effect for logging mouse position and board coordinates
+  useEffect(() => {
+    if (mousePos && showDebugOverlay) {
+      const coords = getBoardCoordinates(mousePos.x, mousePos.y);
+      console.log(`[DEBUG] mousePos: ${mousePos.x}, ${mousePos.y} → Board: ${coords ? coords.join(',') : 'null'}`);
+
+      if (dragState.dragging) {
+        console.log(`[DEBUG] Dragging: ${dragState.piece?.symbol || 'unknown'}, Valid moves: ${dragState.validMoves.map(m => `[${m[0]},${m[1]}]`).join(' ')}`);
+      }
+    }
+  }, [mousePos, dragState.dragging, dragState.piece, dragState.validMoves, showDebugOverlay, getBoardCoordinates]);
+
+  // Neural canvas drawing functions
+  const drawWavyGrid = useCallback((ctx: CanvasRenderingContext2D, time: number) => {
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // Set grid style
+    ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)';
+    ctx.lineWidth = 1;
+
+    // Draw wavy horizontal lines
+    for (let row = 0; row <= 10; row++) {
+      const y = row * cellSize;
+      ctx.beginPath();
+
+      for (let x = 0; x <= width; x += 5) {
+        // Add sine wave distortion
+        const distortion = Math.sin((x / width) * Math.PI * 4 + time / 1000) * 2;
+        const waveY = y + distortion;
+
+        if (x === 0) {
+          ctx.moveTo(x, waveY);
+        } else {
+          ctx.lineTo(x, waveY);
+        }
+      }
+
+      ctx.stroke();
+    }
+
+    // Draw wavy vertical lines
+    for (let col = 0; col <= 9; col++) {
+      const x = col * cellSize;
+      ctx.beginPath();
+
+      for (let y = 0; y <= height; y += 5) {
+        // Add sine wave distortion
+        const distortion = Math.sin((y / height) * Math.PI * 4 + time / 1000) * 2;
+        const waveX = x + distortion;
+
+        if (y === 0) {
+          ctx.moveTo(waveX, y);
+        } else {
+          ctx.lineTo(waveX, y);
+        }
+      }
+
+      ctx.stroke();
+    }
+  }, [cellSize, isDarkMode]);
+
+  const drawValidMoveHalos = useCallback((ctx: CanvasRenderingContext2D, time: number) => {
+    // Draw halos for valid moves
+    if (!dragState.dragging || !dragState.validMoves.length) return;
+
+    dragState.validMoves.forEach(([row, col]) => {
+      const x = col * cellSize;
+      const y = row * cellSize;
+
+      // Create pulsating halo
+      const pulse = 0.7 + 0.3 * Math.sin(time / 500);
+      const radius = 12 * pulse;
+
+      // Add slight position jitter
+      const jitterX = Math.sin(time / 200 + row * col) * 2;
+      const jitterY = Math.cos(time / 180 + row + col) * 2;
+
+      // Draw halo
+      const gradient = ctx.createRadialGradient(
+        x + jitterX, y + jitterY, 0,
+        x + jitterX, y + jitterY, radius * 2
+      );
+
+      gradient.addColorStop(0, isDarkMode ? 'rgba(0, 255, 100, 0.7)' : 'rgba(0, 180, 70, 0.7)');
+      gradient.addColorStop(0.5, isDarkMode ? 'rgba(0, 255, 100, 0.3)' : 'rgba(0, 180, 70, 0.3)');
+      gradient.addColorStop(1, 'rgba(0, 255, 100, 0)');
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x + jitterX, y + jitterY, radius * 2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }, [cellSize, dragState.dragging, dragState.validMoves, isDarkMode]);
+
+  const drawDragTrail = useCallback((ctx: CanvasRenderingContext2D) => {
+    if (!dragState.dragging || !mousePos || dragTrailRef.current.length === 0) return;
+
+    // Add current position to trail
+    if (boardContainerRef.current) {
+      const boardRect = boardContainerRef.current.getBoundingClientRect();
+      const relativeX = mousePos.x - boardRect.left;
+      const relativeY = mousePos.y - boardRect.top;
+
+      // Only add if mouse is over the board
+      if (relativeX >= 0 && relativeX <= 450 && relativeY >= 0 && relativeY <= 500) {
+        dragTrailRef.current.push({ x: relativeX, y: relativeY, age: 0 });
+
+        // Limit trail length
+        if (dragTrailRef.current.length > 20) {
+          dragTrailRef.current.shift();
+        }
+      }
+    }
+
+    // Draw trail
+    if (dragTrailRef.current.length > 1) {
+      ctx.strokeStyle = isDarkMode ? 'rgba(255, 200, 100, 0.6)' : 'rgba(200, 100, 0, 0.6)';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(dragTrailRef.current[0].x, dragTrailRef.current[0].y);
+
+      for (let i = 1; i < dragTrailRef.current.length; i++) {
+        const point = dragTrailRef.current[i];
+        const prevPoint = dragTrailRef.current[i - 1];
+
+        // Draw curved line
+        const xc = (point.x + prevPoint.x) / 2;
+        const yc = (point.y + prevPoint.y) / 2;
+        ctx.quadraticCurveTo(prevPoint.x, prevPoint.y, xc, yc);
+
+        // Age the point
+        point.age += 1;
+      }
+
+      ctx.stroke();
+
+      // Remove old points
+      dragTrailRef.current = dragTrailRef.current.filter(point => point.age < 30);
+    }
+  }, [dragState.dragging, mousePos, isDarkMode]);
+
+  const drawTemporalMemory = useCallback((ctx: CanvasRenderingContext2D, time: number) => {
+    // Draw "memory" of recent moves
+    if (gameState.moveHistory.length === 0) return;
+
+    // Get last few moves
+    const recentMoves = gameState.moveHistory.slice(-5);
+
+    recentMoves.forEach((move, index) => {
+      const age = recentMoves.length - index;
+      const opacity = 0.2 / age;
+
+      // Draw source position
+      const [fromRow, fromCol] = move.from;
+      const sourceX = fromCol * cellSize;
+      const sourceY = fromRow * cellSize;
+
+      // Draw destination position
+      const [toRow, toCol] = move.to;
+      const destX = toCol * cellSize;
+      const destY = toRow * cellSize;
+
+      // Draw pulsating circle at source
+      const sourceRadius = 5 + 2 * Math.sin(time / 1000 + index);
+      ctx.fillStyle = `rgba(200, 100, 255, ${opacity})`;
+      ctx.beginPath();
+      ctx.arc(sourceX, sourceY, sourceRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw pulsating circle at destination
+      const destRadius = 8 + 3 * Math.sin(time / 1000 + index + Math.PI);
+      ctx.fillStyle = `rgba(255, 100, 200, ${opacity * 1.5})`;
+      ctx.beginPath();
+      ctx.arc(destX, destY, destRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw connecting line
+      ctx.strokeStyle = `rgba(180, 100, 220, ${opacity})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sourceX, sourceY);
+      ctx.lineTo(destX, destY);
+      ctx.stroke();
+    });
+  }, [gameState.moveHistory, cellSize]);
+
+  // Animation loop for neural overlay
+  useEffect(() => {
+    if (!showNeuralOverlay || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const animate = (time: number) => {
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw neural overlay elements
+      drawWavyGrid(ctx, time);
+      drawValidMoveHalos(ctx, time);
+      drawDragTrail(ctx);
+      drawTemporalMemory(ctx, time);
+
+      // Update time reference
+      lastTimeRef.current = time;
+
+      // Continue animation loop
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    // Start animation loop
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    // Cleanup
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [showNeuralOverlay, drawWavyGrid, drawValidMoveHalos, drawDragTrail, drawTemporalMemory]);
+
+  // Reset drag trail when dragging stops
+  useEffect(() => {
+    if (!dragState.dragging) {
+      dragTrailRef.current = [];
+    }
+  }, [dragState.dragging]);
+
+  // Add CSS keyframes for animations and track mouse position
+  useEffect(() => {
+    // Create a style element
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = `
+      @keyframes pulse {
+        0% {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 0.7;
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.2);
+          opacity: 1;
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 0.7;
+        }
+      }
+    `;
+
+    // Append the style element to the document head
+    document.head.appendChild(styleElement);
+
+    // Track mouse position using React state with requestAnimationFrame for performance
+    let rafId: number;
+    const trackMousePosition = (e: MouseEvent) => {
+      // Cancel any pending animation frame to avoid excessive updates
+      cancelAnimationFrame(rafId);
+
+      // Schedule the state update on the next animation frame
+      rafId = requestAnimationFrame(() => {
+        setMousePos({x: e.clientX, y: e.clientY});
+
+        // We no longer need these data attributes, but keep them for backward compatibility
+        // with any code that might still be using them
+        document.documentElement.setAttribute('data-mouse-x', e.clientX.toString());
+        document.documentElement.setAttribute('data-mouse-y', e.clientY.toString());
+      });
+    };
+
+    // Add mouse move listener
+    document.addEventListener('mousemove', trackMousePosition);
+
+    // Clean up on unmount
+    return () => {
+      document.head.removeChild(styleElement);
+      document.removeEventListener('mousemove', trackMousePosition);
+      // Cancel any pending animation frame
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, []);
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Debug overlay */}
+      {showDebugOverlay && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, zIndex: 1000,
+          backgroundColor: 'rgba(0,0,0,0.8)', color: 'lime', padding: '8px',
+          fontFamily: 'monospace', fontSize: '12px', width: '300px',
+          border: '1px solid lime'
+        }}>
+          <div style={{ marginBottom: '4px', borderBottom: '1px solid lime', paddingBottom: '4px' }}>
+            <strong>DEBUG OVERLAY</strong>
+          </div>
+          <div>
+            Mouse: {mousePos ? `${mousePos.x}, ${mousePos.y}` : 'null'}<br/>
+            Board Coords: {mousePos ? (getBoardCoordinates(mousePos.x, mousePos.y)?.join(',') || 'null') : 'null'}<br/>
+            Dragging: {dragState.dragging ? 'true' : 'false'}<br/>
+            Valid Moves: {dragState.validMoves.map(m => `[${m[0]},${m[1]}]`).join(' ')}<br/>
+            Selected Piece: {gameState.board.selectedPiece ?
+              `${gameState.board.selectedPiece.symbol} at [${gameState.board.selectedPiece.position.join(',')}]` :
+              'null'
+            }
+          </div>
+        </div>
+      )}
+
       {/* Player info and game status */}
       <div className="flex flex-col gap-2 sm:gap-4">
         {/* Player info cards */}
@@ -874,6 +1633,22 @@ const InteractiveBoard: React.FC = () => {
               title="Sound Settings" aria-label="Sound Settings">
               <Volume2 className="h-4 w-4" />
             </Button>
+            <Button
+              size="icon"
+              variant={showDebugOverlay ? "default" : "outline"}
+              onClick={() => setShowDebugOverlay(!showDebugOverlay)}
+              title="Toggle Debug Overlay"
+              aria-label="Toggle Debug Overlay">
+              <span className="font-mono text-xs">DBG</span>
+            </Button>
+            <Button
+              size="icon"
+              variant={showNeuralOverlay ? "default" : "outline"}
+              onClick={() => setShowNeuralOverlay(!showNeuralOverlay)}
+              title="Toggle Neural Overlay"
+              aria-label="Toggle Neural Overlay">
+              <span className="font-mono text-xs">🧠</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -885,14 +1660,19 @@ const InteractiveBoard: React.FC = () => {
         padding: '50px 50px 50px 50px', // Equal padding on all sides
         boxSizing: 'content-box'
       }}>
-        <div className="relative" style={{
-          width: '450px', // 9 columns * 50px
-          height: '500px', // 10 rows * 50px
-          margin: '0 auto',
-          border: `2px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'hsl(var(--border))'}`,
-          boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
-          backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)' // Add background color to the board
-        }}>
+        {/* The dragged piece is created in the DOM directly */}
+
+        <div
+          ref={boardContainerRef}
+          className="relative"
+          style={{
+            width: '451px', // 9 columns * 50px + 1px for the last line
+            height: '501px', // 10 rows * 50px + 1px for the last line
+            margin: '0 auto',
+            border: `2px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'hsl(var(--border))'}`,
+            boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
+            backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)' // Add background color to the board
+          }}>
           {/* Palace diagonal lines - proper 3x3 implementation */}
           <div className="absolute" style={{
             top: '0',
@@ -974,7 +1754,46 @@ const InteractiveBoard: React.FC = () => {
             height: '500px',
             backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)'
           }}>
+            {/* Neural Canvas Layer - positioned below the board elements */}
+            <canvas
+              ref={canvasRef}
+              className="absolute top-0 left-0 z-1"
+              width={450}
+              height={500}
+              style={{
+                pointerEvents: 'none',
+                opacity: showNeuralOverlay ? 0.85 : 0
+              }}
+            />
+
             {renderBoard()}
+
+            {/* Debug mouse position indicator */}
+            {showDebugOverlay && mousePos && boardContainerRef.current && (() => {
+              const boardRect = boardContainerRef.current.getBoundingClientRect();
+              const relativeX = mousePos.x - boardRect.left;
+              const relativeY = mousePos.y - boardRect.top;
+
+              // Only show if mouse is over the board
+              if (relativeX >= 0 && relativeX <= 450 && relativeY >= 0 && relativeY <= 500) {
+                return (
+                  <div style={{
+                    position: 'absolute',
+                    top: relativeY,
+                    left: relativeX,
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    backgroundColor: 'magenta',
+                    transform: 'translate(-50%, -50%)',
+                    pointerEvents: 'none',
+                    zIndex: 1000,
+                    boxShadow: '0 0 0 2px black'
+                  }} />
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
       </div>

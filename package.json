@@ -16,6 +16,8 @@
     "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@genkit-ai/googleai": "^1.0.4",
     "@genkit-ai/next": "^1.0.4",
     "@hookform/resolvers": "^4.1.3",

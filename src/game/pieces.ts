@@ -21,6 +21,7 @@ export interface Piece {
   side: PlayerSide;
   position: [number, number]; // [row, col]
   symbol: string;
+  id?: number; // Add optional id property for drag-and-drop functionality
 }
 
 // Define the board interface
@@ -403,40 +404,40 @@ export function isCheckmate(board: Board, side: PlayerSide): boolean {
 export function initializeBoard(): Board {
   const pieces: Piece[] = [
     // Red pieces (bottom side)
-    { type: PieceType.CHARIOT, side: PlayerSide.RED, position: [9, 0], symbol: '俥' },
-    { type: PieceType.HORSE, side: PlayerSide.RED, position: [9, 1], symbol: '傌' },
-    { type: PieceType.ELEPHANT, side: PlayerSide.RED, position: [9, 2], symbol: '相' },
-    { type: PieceType.ADVISOR, side: PlayerSide.RED, position: [9, 3], symbol: '仕' },
-    { type: PieceType.GENERAL, side: PlayerSide.RED, position: [9, 4], symbol: '帥' },
-    { type: PieceType.ADVISOR, side: PlayerSide.RED, position: [9, 5], symbol: '仕' },
-    { type: PieceType.ELEPHANT, side: PlayerSide.RED, position: [9, 6], symbol: '相' },
-    { type: PieceType.HORSE, side: PlayerSide.RED, position: [9, 7], symbol: '傌' },
-    { type: PieceType.CHARIOT, side: PlayerSide.RED, position: [9, 8], symbol: '俥' },
-    { type: PieceType.CANNON, side: PlayerSide.RED, position: [7, 1], symbol: '砲' },
-    { type: PieceType.CANNON, side: PlayerSide.RED, position: [7, 7], symbol: '砲' },
-    { type: PieceType.SOLDIER, side: PlayerSide.RED, position: [6, 0], symbol: '兵' },
-    { type: PieceType.SOLDIER, side: PlayerSide.RED, position: [6, 2], symbol: '兵' },
-    { type: PieceType.SOLDIER, side: PlayerSide.RED, position: [6, 4], symbol: '兵' },
-    { type: PieceType.SOLDIER, side: PlayerSide.RED, position: [6, 6], symbol: '兵' },
-    { type: PieceType.SOLDIER, side: PlayerSide.RED, position: [6, 8], symbol: '兵' },
+    { type: PieceType.CHARIOT, side: PlayerSide.RED, position: [9, 0], symbol: '俥', id: 1 },
+    { type: PieceType.HORSE, side: PlayerSide.RED, position: [9, 1], symbol: '傌', id: 2 },
+    { type: PieceType.ELEPHANT, side: PlayerSide.RED, position: [9, 2], symbol: '相', id: 3 },
+    { type: PieceType.ADVISOR, side: PlayerSide.RED, position: [9, 3], symbol: '仕', id: 4 },
+    { type: PieceType.GENERAL, side: PlayerSide.RED, position: [9, 4], symbol: '帥', id: 5 },
+    { type: PieceType.ADVISOR, side: PlayerSide.RED, position: [9, 5], symbol: '仕', id: 6 },
+    { type: PieceType.ELEPHANT, side: PlayerSide.RED, position: [9, 6], symbol: '相', id: 7 },
+    { type: PieceType.HORSE, side: PlayerSide.RED, position: [9, 7], symbol: '傌', id: 8 },
+    { type: PieceType.CHARIOT, side: PlayerSide.RED, position: [9, 8], symbol: '俥', id: 9 },
+    { type: PieceType.CANNON, side: PlayerSide.RED, position: [7, 1], symbol: '砲', id: 10 },
+    { type: PieceType.CANNON, side: PlayerSide.RED, position: [7, 7], symbol: '砲', id: 11 },
+    { type: PieceType.SOLDIER, side: PlayerSide.RED, position: [6, 0], symbol: '兵', id: 12 },
+    { type: PieceType.SOLDIER, side: PlayerSide.RED, position: [6, 2], symbol: '兵', id: 13 },
+    { type: PieceType.SOLDIER, side: PlayerSide.RED, position: [6, 4], symbol: '兵', id: 14 },
+    { type: PieceType.SOLDIER, side: PlayerSide.RED, position: [6, 6], symbol: '兵', id: 15 },
+    { type: PieceType.SOLDIER, side: PlayerSide.RED, position: [6, 8], symbol: '兵', id: 16 },
 
     // Black pieces (top side)
-    { type: PieceType.CHARIOT, side: PlayerSide.BLACK, position: [0, 0], symbol: '車' },
-    { type: PieceType.HORSE, side: PlayerSide.BLACK, position: [0, 1], symbol: '馬' },
-    { type: PieceType.ELEPHANT, side: PlayerSide.BLACK, position: [0, 2], symbol: '象' },
-    { type: PieceType.ADVISOR, side: PlayerSide.BLACK, position: [0, 3], symbol: '士' },
-    { type: PieceType.GENERAL, side: PlayerSide.BLACK, position: [0, 4], symbol: '將' },
-    { type: PieceType.ADVISOR, side: PlayerSide.BLACK, position: [0, 5], symbol: '士' },
-    { type: PieceType.ELEPHANT, side: PlayerSide.BLACK, position: [0, 6], symbol: '象' },
-    { type: PieceType.HORSE, side: PlayerSide.BLACK, position: [0, 7], symbol: '馬' },
-    { type: PieceType.CHARIOT, side: PlayerSide.BLACK, position: [0, 8], symbol: '車' },
-    { type: PieceType.CANNON, side: PlayerSide.BLACK, position: [2, 1], symbol: '炮' },
-    { type: PieceType.CANNON, side: PlayerSide.BLACK, position: [2, 7], symbol: '炮' },
-    { type: PieceType.SOLDIER, side: PlayerSide.BLACK, position: [3, 0], symbol: '卒' },
-    { type: PieceType.SOLDIER, side: PlayerSide.BLACK, position: [3, 2], symbol: '卒' },
-    { type: PieceType.SOLDIER, side: PlayerSide.BLACK, position: [3, 4], symbol: '卒' },
-    { type: PieceType.SOLDIER, side: PlayerSide.BLACK, position: [3, 6], symbol: '卒' },
-    { type: PieceType.SOLDIER, side: PlayerSide.BLACK, position: [3, 8], symbol: '卒' },
+    { type: PieceType.CHARIOT, side: PlayerSide.BLACK, position: [0, 0], symbol: '車', id: 17 },
+    { type: PieceType.HORSE, side: PlayerSide.BLACK, position: [0, 1], symbol: '馬', id: 18 },
+    { type: PieceType.ELEPHANT, side: PlayerSide.BLACK, position: [0, 2], symbol: '象', id: 19 },
+    { type: PieceType.ADVISOR, side: PlayerSide.BLACK, position: [0, 3], symbol: '士', id: 20 },
+    { type: PieceType.GENERAL, side: PlayerSide.BLACK, position: [0, 4], symbol: '將', id: 21 },
+    { type: PieceType.ADVISOR, side: PlayerSide.BLACK, position: [0, 5], symbol: '士', id: 22 },
+    { type: PieceType.ELEPHANT, side: PlayerSide.BLACK, position: [0, 6], symbol: '象', id: 23 },
+    { type: PieceType.HORSE, side: PlayerSide.BLACK, position: [0, 7], symbol: '馬', id: 24 },
+    { type: PieceType.CHARIOT, side: PlayerSide.BLACK, position: [0, 8], symbol: '車', id: 25 },
+    { type: PieceType.CANNON, side: PlayerSide.BLACK, position: [2, 1], symbol: '炮', id: 26 },
+    { type: PieceType.CANNON, side: PlayerSide.BLACK, position: [2, 7], symbol: '炮', id: 27 },
+    { type: PieceType.SOLDIER, side: PlayerSide.BLACK, position: [3, 0], symbol: '卒', id: 28 },
+    { type: PieceType.SOLDIER, side: PlayerSide.BLACK, position: [3, 2], symbol: '卒', id: 29 },
+    { type: PieceType.SOLDIER, side: PlayerSide.BLACK, position: [3, 4], symbol: '卒', id: 30 },
+    { type: PieceType.SOLDIER, side: PlayerSide.BLACK, position: [3, 6], symbol: '卒', id: 31 },
+    { type: PieceType.SOLDIER, side: PlayerSide.BLACK, position: [3, 8], symbol: '卒', id: 32 },
   ];
 
   return {
