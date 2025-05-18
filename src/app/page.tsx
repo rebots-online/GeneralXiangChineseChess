@@ -17,9 +17,9 @@ import {
 } from '@/components/ui/sidebar';
 import { WalkthroughProvider } from '@/contexts/WalkthroughContext';
 import { WalkthroughOverlay } from '@/components/WalkthroughOverlay';
-import TutorialCard from '@/components/TutorialCard';
 import AboutDialog from '@/components/AboutDialog';
 import HelpDialog from '@/components/HelpDialog';
+import TutorialsDialog from '@/components/TutorialsDialog';
 import PolicyLinks from '@/components/PolicyLinks';
 
 // Lazy load the optimized board component
@@ -33,6 +33,7 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const aboutDialogRef = useRef<{ setOpen: (open: boolean) => void }>(null);
   const helpDialogRef = useRef<{ setOpen: (open: boolean) => void }>(null);
+  const tutorialsDialogRef = useRef<{ setOpen: (open: boolean) => void }>(null);
 
   useEffect(() => {
     const storedState = localStorage.getItem('sidebarState');
@@ -58,6 +59,12 @@ export default function Home() {
   const openHelpDialog = () => {
     if (helpDialogRef.current) {
       helpDialogRef.current.setOpen(true);
+    }
+  };
+
+  const openTutorialDialog = () => {
+    if (tutorialsDialogRef.current) {
+      tutorialsDialogRef.current.setOpen(true);
     }
   };
 
@@ -161,7 +168,7 @@ export default function Home() {
                 </SidebarGroupLabel>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Tutorials">
+                  <SidebarMenuButton tooltip="Tutorials" onClick={openTutorialDialog}>
                       <span className="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-book-open">
                           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
@@ -270,23 +277,6 @@ export default function Home() {
               <OptimizedInteractiveBoard/>
             </Suspense>
 
-            <section className="mt-4 sm:mt-6 md:mt-8 grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <TutorialCard
-                title="Basic Rules"
-                description="Learn the fundamental rules of Xiangqi, including piece movements and board setup."
-                tutorialType="basic"
-              />
-              <TutorialCard
-                title="Opening Strategies"
-                description="Discover effective opening strategies to gain an early advantage."
-                tutorialType="opening"
-              />
-              <TutorialCard
-                title="Advanced Tactics"
-                description="Explore advanced tactics and strategies to outmaneuver your opponents."
-                tutorialType="advanced"
-              />
-            </section>
           </main>
 
           {/* Walkthrough overlay */}
@@ -295,6 +285,7 @@ export default function Home() {
           {/* Dialogs */}
           <AboutDialog ref={aboutDialogRef} />
           <HelpDialog ref={helpDialogRef} />
+          <TutorialsDialog ref={tutorialsDialogRef} />
         </div>
       </SidebarProvider>
     </WalkthroughProvider>
