@@ -80,14 +80,15 @@ export const WalkthroughProvider: React.FC<WalkthroughProviderProps> = ({ childr
     highlightedElements.forEach(el => {
       el.classList.remove('highlighted');
       // Restore original styles
-      const originalZIndex = el.getAttribute('data-original-z-index');
+      const htmlElement = el as HTMLElement;
+      const originalZIndex = htmlElement.getAttribute('data-original-z-index');
       if (originalZIndex !== null) {
-        el.style.zIndex = originalZIndex;
-        el.removeAttribute('data-original-z-index');
+        htmlElement.style.zIndex = originalZIndex;
+        htmlElement.removeAttribute('data-original-z-index');
       }
-      el.style.boxShadow = '';
-      el.style.position = '';
-      el.style.pointerEvents = ''; // Restore pointer events
+      htmlElement.style.boxShadow = '';
+      htmlElement.style.position = '';
+      htmlElement.style.pointerEvents = ''; // Restore pointer events
     });
   };
 

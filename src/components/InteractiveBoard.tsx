@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -36,10 +37,11 @@ import AuthService, { AuthState, User } from "@/services/AuthService";
 // Board dimensions for Xiangqi (Chinese Chess)
 // The board has 9 columns (0-8) and 10 rows (0-9)
 // Pieces are placed on intersections, not in squares
-const cellSize = 50; // Size between intersections
-const boardWidth = cellSize * 8; // 8 spaces between 9 intersections horizontally
-const boardHeight = cellSize * 9; // 9 spaces between 10 intersections vertically
 
+const cellSize = 50; // Size between intersections
+const boardWidth = cellSize * 9; // 9 intersections horizontally
+const boardHeight = cellSize * 10; // 10 intersections vertically
+    
 // CSS for animations is added directly to the component styles
 
 const setupPalatialAnchors = (isDarkMode: boolean) => (
@@ -70,7 +72,7 @@ const setupPalatialAnchors = (isDarkMode: boolean) => (
         height: '100%',
         backgroundImage: `linear-gradient(to bottom right, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px)),
                        linear-gradient(to bottom left, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px))`,
-      filter: `${isDarkMode ? 'drop-shadow(0 0 6px hsl(5, 100%, 50%))' : 'drop-shadow(0 0 4px hsl(5, 100%, 27.3%))'}`,
+      filter: `${isDarkMode ? 'drop-shadow(0 0 6px hsl(5, 100%, 50%)' : 'drop-shadow(0 0 4px hsl(5, 100%, 27.3%)'}`,
         pointerEvents: 'none'
       }}></div>
     </div>
@@ -93,7 +95,7 @@ const setupPalatialAnchors = (isDarkMode: boolean) => (
         height: '100%',
         backgroundImage: `linear-gradient(to bottom right, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px)),
                        linear-gradient(to bottom left, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px))`,
-      filter: `${isDarkMode ? 'drop-shadow(0 0 6px hsl(5, 100%, 50%))' : 'drop-shadow(0 0 4px hsl(5, 100%, 27.3%))'}`,
+        filter: `${isDarkMode ? 'drop-shadow(0 0 6px hsl(5, 100%, 50%)' : 'drop-shadow(0 0 4px hsl(5, 100%, 27.3%)'}`,
         pointerEvents: 'none'
       }}></div>
     </div>
@@ -127,8 +129,17 @@ const InteractiveBoard: React.FC = () => {
     validMoves: []
   });
 
+  // Use ref to track drag state without causing listener rebinding
+  const dragStateRef = useRef<DragState>(dragState);
+
+  // Update ref when drag state changes
+  useEffect(() => {
+    dragStateRef.current = dragState;
+  }, [dragState]);
+
   // Ref for the board container
   const boardContainerRef = useRef<HTMLDivElement>(null);
+    
 
   // Define game control functions first
   const handleNewGame = () => {
@@ -339,7 +350,7 @@ const InteractiveBoard: React.FC = () => {
     if (dropCoordinates) {
       const [targetRow, targetCol] = dropCoordinates;
 
-      // Check if this is a valid move
+      // Check if this is a valid move using strict equality for precise coordinate matching
       const isValidMove = dragState.validMoves.some(
         ([r, c]) => r === targetRow && c === targetCol
       );
@@ -389,14 +400,12 @@ const InteractiveBoard: React.FC = () => {
     cleanupDrag();
   }, [dragState, gameState, cleanupDrag, getBoardCoordinates]);
 
-
-
   // Use ref to track drag state without causing listener rebinding
-  const dragStateRef = useRef<DragState>(dragState);
+  const dragStateRefUp = useRef<DragState>(dragState);
 
   // Update ref when drag state changes
   useEffect(() => {
-    dragStateRef.current = dragState;
+    dragStateRefUp.current = dragState;
   }, [dragState]);
 
   // Setup drag and drop event listeners - with stable references
@@ -425,7 +434,7 @@ const InteractiveBoard: React.FC = () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [onMouseUpPiece]); // Only depends on onMouseUpPiece, not dragState
+  }, [onMouseUpPiece]);
 
   // Helper function to position the drag image under the cursor
   const positionDragImage = (e: {clientX: number, clientY: number}, dragImage: HTMLDivElement) => {
@@ -438,8 +447,6 @@ const InteractiveBoard: React.FC = () => {
     dragImage.style.left = (e.clientX - halfWidth) + "px";
     dragImage.style.top = (e.clientY - halfHeight) + "px";
   };
-
-
 
   // Handle multiplayer game functionality
   const [showJoinGameDialog, setShowJoinGameDialog] = useState(false);
@@ -662,8 +669,6 @@ const InteractiveBoard: React.FC = () => {
     };
   }, []);
 
-
-
   // Create a drag image element for the piece being dragged
   const createDragImage = (piece: Piece): HTMLDivElement => {
     // Create a div to hold the dragged piece
@@ -733,7 +738,7 @@ const InteractiveBoard: React.FC = () => {
       return;
     }
 
-    // Prevent default browser drag behavior
+    // Prevent default browser drag behaviour
     e.preventDefault();
     e.stopPropagation();
 
@@ -785,10 +790,7 @@ const InteractiveBoard: React.FC = () => {
     document.body.style.userSelect = 'none';
   };
 
-
-
   // No duplicate function needed
-
   // No old drag handlers needed anymore
 
   // Click handler for piece selection and movement
@@ -1493,6 +1495,7 @@ const InteractiveBoard: React.FC = () => {
     }
   }, [dragState.dragging]);
 
+
   // Add CSS keyframes for animations and track mouse position
   useEffect(() => {
     // Create a style element
@@ -1521,16 +1524,13 @@ const InteractiveBoard: React.FC = () => {
     let rafId: number;
     const trackMousePosition = (e: MouseEvent) => {
       // Cancel any pending animation frame to avoid excessive updates
-      cancelAnimationFrame(rafId);
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
 
       // Schedule the state update on the next animation frame
       rafId = requestAnimationFrame(() => {
         setMousePos({x: e.clientX, y: e.clientY});
-
-        // We no longer need these data attributes, but keep them for backward compatibility
-        // with any code that might still be using them
-        document.documentElement.setAttribute('data-mouse-x', e.clientX.toString());
-        document.documentElement.setAttribute('data-mouse-y', e.clientY.toString());
       });
     };
 
@@ -1547,7 +1547,7 @@ const InteractiveBoard: React.FC = () => {
       }
     };
   }, []);
-
+    
   return (
     <div className="flex flex-col gap-4">
       {/* Debug overlay */}
@@ -1666,8 +1666,10 @@ const InteractiveBoard: React.FC = () => {
           ref={boardContainerRef}
           className="relative"
           style={{
-            width: '451px', // 9 columns * 50px + 1px for the last line
-            height: '501px', // 10 rows * 50px + 1px for the last line
+
+            width: `${boardWidth + 1}px`, // 9 columns * 50px + 1px for the last line  
+            height: `${boardHeight + 1}px`, // 10 rows * 50px + 1px for the last line
+
             margin: '0 auto',
             border: `2px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'hsl(var(--border))'}`,
             boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
@@ -1700,7 +1702,7 @@ const InteractiveBoard: React.FC = () => {
                 width: '100%',
                 height: '100%',
                 backgroundImage: `linear-gradient(to bottom right, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px)),
-                                 linear-gradient(to bottom left, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px))`,
+                             linear-gradient(to bottom left, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px))`,
                 pointerEvents: 'none'
               }}></div>
             </div>
@@ -1723,7 +1725,7 @@ const InteractiveBoard: React.FC = () => {
                 width: '100%',
                 height: '100%',
                 backgroundImage: `linear-gradient(to bottom right, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px)),
-                                 linear-gradient(to bottom left, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px))`,
+                             linear-gradient(to bottom left, transparent calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% - 0.5px), ${isDarkMode ? 'hsl(5, 100%, 50%)' : 'hsl(5, 100%, 27.3%)'} calc(50% + 0.5px), transparent calc(50% + 0.5px))`,
                 pointerEvents: 'none'
               }}></div>
             </div>
@@ -1750,16 +1752,20 @@ const InteractiveBoard: React.FC = () => {
 
           {setupPalatialAnchors(isDarkMode)}
           <div className="relative" style={{
-            width: '450px',
-            height: '500px',
+
+            width: `${boardWidth}px`,
+            height: `${boardHeight}px`,
+    
             backgroundColor: isDarkMode ? 'hsl(36, 30%, 25%)' : 'hsl(36, 70%, 80%)'
           }}>
             {/* Neural Canvas Layer - positioned below the board elements */}
             <canvas
               ref={canvasRef}
               className="absolute top-0 left-0 z-1"
-              width={450}
-              height={500}
+
+              width={boardWidth}
+              height={boardHeight}
+    
               style={{
                 pointerEvents: 'none',
                 opacity: showNeuralOverlay ? 0.85 : 0

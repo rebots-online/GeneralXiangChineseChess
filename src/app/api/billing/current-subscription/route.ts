@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-04-30.basil'
-});
+
+    
 
 interface LightningSubscription {
   planId: string;
@@ -63,10 +62,22 @@ export async function GET() {
 
 async function getStripeSubscription(userId: string): Promise<SubscriptionResponse | null> {
   try {
+    // Check if STRIPE_SECRET_KEY is available
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.log('Stripe API key is not configured, skipping Stripe subscription check');
+      return null;
+    }
+    
+    // Initialize Stripe with API key at request time, not build time
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-04-30.basil'
+    });
+    
     // Fetch the customer ID associated with the user
     // This would typically come from your database
     const customerId = await getStripeCustomerId(userId);
     
+
     if (!customerId) return null;
 
     const subscriptions = await stripe.subscriptions.list({

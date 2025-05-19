@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-04-30.basil'
-});
+
+    
 
 // Extended Stripe types
 interface ExtendedSubscription extends Stripe.Subscription {
@@ -16,7 +15,11 @@ interface ExtendedSession extends Stripe.Checkout.Session {
   subscription: ExtendedSubscription;
 }
 
+
 export async function POST(request: Request) {
+
+
+    
   try {
     const { sessionId } = await request.json();
 
@@ -27,6 +30,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if STRIPE_SECRET_KEY is available
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('Stripe API key is not configured');
+      return NextResponse.json(
+        { error: 'Payment service is not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Initialize Stripe with API key at request time, not build time
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-04-30.basil'
+    });
+
+    
     // Get the session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ['subscription', 'customer']

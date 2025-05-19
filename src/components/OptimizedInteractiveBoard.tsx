@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Undo, Sun, Moon, RotateCcw, Save, Volume2 } from 'lucide-react';
@@ -63,7 +64,6 @@ const MemoizedPiece = memo(({
     </div>
   );
 });
-
 MemoizedPiece.displayName = 'MemoizedPiece';
 
 // Memoized valid move indicator
@@ -82,7 +82,6 @@ const ValidMoveIndicator = memo(({ isDarkMode }: { isDarkMode: boolean }) => (
     zIndex: 5,
   }} />
 ));
-
 ValidMoveIndicator.displayName = 'ValidMoveIndicator';
 
 // Memoized capture indicator
@@ -100,7 +99,6 @@ const CaptureIndicator = memo(({ isDarkMode }: { isDarkMode: boolean }) => (
     zIndex: 11,
   }} />
 ));
-
 CaptureIndicator.displayName = 'CaptureIndicator';
 
 // Memoized move history item
@@ -109,11 +107,56 @@ const MoveHistoryItem = memo(({ index, notation }: { index: number, notation: st
     {index + 1}. {notation}
   </div>
 ));
-
 MoveHistoryItem.displayName = 'MoveHistoryItem';
+
+// Helper hooks for drag and drop
+const useDragState = () => {
+  const [dragging, setDragging] = useState(false);
+  const [draggedPiece, setDraggedPiece] = useState<Piece | null>(null);
+  const [validDropLocations, setValidDropLocations] = useState<[number, number][]>([]);
+
+  // Use ref to avoid recreating event listeners
+  const dragStateRef = useRef({ dragging, draggedPiece, validDropLocations });
+
+  // Update ref when state changes
+  useEffect(() => {
+    dragStateRef.current = { dragging, draggedPiece, validDropLocations };
+  }, [dragging, draggedPiece, validDropLocations]);
+
+  return {
+    dragging, setDragging,
+    draggedPiece, setDraggedPiece,
+    validDropLocations, setValidDropLocations,
+    dragStateRef
+  };
+};
 
 // Main component
 const OptimizedInteractiveBoard: React.FC = () => {
+  // Helper function to get board coordinates from mouse position
+  const getBoardCoordinates = useCallback((clientX: number, clientY: number): [number, number] | null => {
+    const boardElement = document.querySelector('.board-container');
+    if (!boardElement) return null;
+    
+    const boardRect = boardElement.getBoundingClientRect();
+    
+    // Calculate position relative to the board
+    const relativeX = clientX - boardRect.left - 50; // Adjust for padding
+    const relativeY = clientY - boardRect.top - 50; // Adjust for padding
+    
+    // Convert to board coordinates using floor with half-cell offset
+    // This ensures more accurate snapping to grid intersections
+    const col = Math.floor((relativeX + cellSize/2) / cellSize);
+    const row = Math.floor((relativeY + cellSize/2) / cellSize);
+    
+    // Check if within board boundaries
+    if (row >= 0 && row < 10 && col >= 0 && col < 9) {
+      return [row, col];
+    }
+    
+    return null;
+  }, []);
+
   const [gameState, setGameState] = useState<GameState>(initializeGameState());
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [showSaveGameDialog, setShowSaveGameDialog] = useState<boolean>(false);
@@ -260,8 +303,44 @@ const OptimizedInteractiveBoard: React.FC = () => {
     return elements;
   }, [isDarkMode, cellSize]);
 
+  // State for mouse position tracking
+  const [mousePos, setMousePos] = useState<{x: number, y: number} | null>(null);
+  const mousePosRef = useRef<{x: number, y: number} | null>(null);
+
+  // Update mouse position using RAF for performance
+  useEffect(() => {
+    let rafId: number;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+
+      rafId = requestAnimationFrame(() => {
+        const newPos = {x: e.clientX, y: e.clientY};
+        setMousePos(newPos);
+        mousePosRef.current = newPos;
+      });
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, []);
+
+  // Initialize drag state hooks
+  const dragState = useDragState();
+
+  // Type for handleCellClick function
+  type HandleCellClickFn = (row: number, col: number) => void;
+
   // Handle cell click with useCallback to avoid recreating the function on every render
-  const handleCellClick = useCallback((row: number, col: number) => {
+  const handleCellClick: HandleCellClickFn = useCallback((row: number, col: number) => {
     const selectedPiece = board.selectedPiece;
 
     // If a piece is already selected
@@ -326,7 +405,7 @@ const OptimizedInteractiveBoard: React.FC = () => {
         Feedback.pieceSelect();
       }
     }
-  }, [gameState, board]);
+  }, [gameState, board, setGameState]);
 
   // Handle undo move with useCallback
   const handleUndoMove = useCallback(() => {
@@ -411,7 +490,7 @@ const OptimizedInteractiveBoard: React.FC = () => {
     Feedback.toggle();
   }, [hapticsEnabled]);
 
-  // Memoize the intersection points to avoid recreating them on every render
+  // Render intersection points for click handling
   const intersectionPoints = useMemo(() => {
     const elements: JSX.Element[] = [];
 
@@ -455,11 +534,24 @@ const OptimizedInteractiveBoard: React.FC = () => {
     // Render pieces
     gameState.board.pieces.forEach(piece => {
       const [row, col] = piece.position;
-      const isValidMove = gameState.board.validMoves.some(([r, c]) => r === row && c === col);
+      const isValidMove = gameState.board.validMoves.some(
+        ([r, c]) => r === row && c === col
+      );
+      
+      // Check if this piece is selected
+      const isSelected = !!(
+        gameState.board.selectedPiece &&
+        gameState.board.selectedPiece.position[0] === row &&
+        gameState.board.selectedPiece.position[1] === col
+      );
+      
+      // Get current mouse coordinates for hover effects
+      const currentCoords = mousePos ? getBoardCoordinates(mousePos.x, mousePos.y) : null;
+      const isHovered = currentCoords && currentCoords[0] === row && currentCoords[1] === col;
 
       elements.push(
         <div
-          key={`piece-${row}-${col}`}
+          key={`piece-${piece.id || `${row}-${col}`}`}
           className="absolute"
           style={{
             top: `${row * cellSize}px`,
@@ -471,11 +563,7 @@ const OptimizedInteractiveBoard: React.FC = () => {
           <MemoizedPiece
             piece={piece}
             isDarkMode={isDarkMode}
-            isSelected={!!(
-              gameState.board.selectedPiece &&
-              gameState.board.selectedPiece.position[0] === row &&
-              gameState.board.selectedPiece.position[1] === col
-            )}
+            isSelected={isSelected}
             isCurrentTurn={gameState.currentTurn === piece.side}
             onClick={() => handleCellClick(row, col)}
           />
@@ -489,7 +577,7 @@ const OptimizedInteractiveBoard: React.FC = () => {
     });
 
     return elements;
-  }, [gameState.board.pieces, gameState.board.selectedPiece, gameState.board.validMoves, gameState.currentTurn, cellSize, isDarkMode, handleCellClick]);
+  }, [gameState.board.pieces, gameState.board.selectedPiece, gameState.board.validMoves, gameState.currentTurn, cellSize, isDarkMode, handleCellClick, mousePos, getBoardCoordinates]);
 
   // Memoize the move history to avoid recreating it on every render
   const moveHistory = useMemo(() => {

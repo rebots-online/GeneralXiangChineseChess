@@ -24,12 +24,13 @@ export const WalkthroughOverlay: React.FC = () => {
     highlightedElements.forEach(el => {
       el.classList.remove('highlighted');
       // Restore original styles
-      const originalZIndex = el.getAttribute('data-original-z-index');
+      const htmlElement = el as HTMLElement;
+      const originalZIndex = htmlElement.getAttribute('data-original-z-index');
       if (originalZIndex !== null) {
-        el.style.zIndex = originalZIndex;
-        el.removeAttribute('data-original-z-index');
+        htmlElement.style.zIndex = originalZIndex;
+        htmlElement.removeAttribute('data-original-z-index');
       }
-      el.style.boxShadow = '';
+      htmlElement.style.boxShadow = '';
     });
 
     // If target element exists, highlight it
@@ -39,16 +40,19 @@ export const WalkthroughOverlay: React.FC = () => {
 
       targetElement.classList.add('highlighted');
       // Add a temporary style to make the element stand out
-      targetElement.setAttribute('data-original-z-index', targetElement.style.zIndex || '');
-      targetElement.style.zIndex = '1000'; // Increased z-index
-      targetElement.style.position = 'relative';
-      targetElement.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.8), 0 0 15px 5px rgba(255, 255, 255, 0.5)';
-      targetElement.style.pointerEvents = 'none'; // Prevent interaction with highlighted element
+      const targetHTMLElement = targetElement as HTMLElement;
+      targetHTMLElement.setAttribute('data-original-z-index', targetHTMLElement.style.zIndex || '');
+      targetHTMLElement.style.zIndex = '1000'; // Increased z-index
+      targetHTMLElement.style.position = 'relative';
+      targetHTMLElement.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.8), 0 0 15px 5px rgba(255, 255, 255, 0.5)';
+      targetHTMLElement.style.pointerEvents = 'none'; // Prevent interaction with highlighted element
 
       // Position the tooltip near the target element
       if (tooltipRef.current) {
         // Add a small delay to ensure the element is in view before positioning the tooltip
         setTimeout(() => {
+          if (!tooltipRef.current) return; // Additional null check after timeout
+
           const targetRect = targetElement.getBoundingClientRect();
           const tooltipRect = tooltipRef.current.getBoundingClientRect();
 
@@ -99,9 +103,13 @@ export const WalkthroughOverlay: React.FC = () => {
             top = viewportHeight - tooltipRect.height - 20;
           }
 
+
           // Apply the position - for fixed positioning, we don't need to add scroll position
-          tooltipRef.current.style.top = `${top}px`;
-          tooltipRef.current.style.left = `${left}px`;
+          if (tooltipRef.current) {
+            tooltipRef.current.style.top = `${top}px`;
+            tooltipRef.current.style.left = `${left}px`;
+          }
+    
         }, 300); // Short delay to ensure scrolling is complete
       }
     }
@@ -183,3 +191,4 @@ export const WalkthroughOverlay: React.FC = () => {
     </div>
   );
 };
+

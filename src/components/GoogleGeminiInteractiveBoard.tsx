@@ -26,7 +26,7 @@ import {
   makeMove,
   deselectPiece,
   undoMove,
-  Piece // Import Piece type if needed for checks
+  Piece // Import Piece type correctly from gameState
 } from '@/game/gameState'; // Assuming gameState functions and types exist
 import { PlayerSide } from '@/game/pieces'; // Assuming PlayerSide enum exists
 import { Undo, Sun, Moon, RotateCcw, Save, Volume2, Settings, Check, Clipboard, Copy, RefreshCw } from 'lucide-react';

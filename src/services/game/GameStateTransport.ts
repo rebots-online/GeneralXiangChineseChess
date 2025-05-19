@@ -278,7 +278,7 @@ export class GameStateTransport {
     };
     
     // Send action
-    this.jamiTransport.sendGroupMessage(this.gameSessionId, JSON.stringify(completeAction));
+    this.jamiTransport.sendMessage(this.gameSessionId, JSON.stringify(completeAction));
     
     // Add to local action log
     this.actionLog.push(completeAction);
@@ -293,7 +293,7 @@ export class GameStateTransport {
    */
   public sendChatMessage(content: string): void {
     // Send message with [CHAT] prefix
-    this.jamiTransport.sendGroupMessage(this.gameSessionId, `[CHAT] ${content}`);
+    this.jamiTransport.sendMessage(this.gameSessionId, `[CHAT] ${content}`);
     
     // Notify chat message handlers
     this.notifyChatMessageHandlers(content, this.playerId);

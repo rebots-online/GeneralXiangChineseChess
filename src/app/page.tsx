@@ -1,3 +1,4 @@
+
 'use client';
 
 import {useEffect, useState, useRef, lazy, Suspense} from 'react';
@@ -24,10 +25,6 @@ import PolicyLinks from '@/components/PolicyLinks';
 
 // Lazy load the optimized board component
 const OptimizedInteractiveBoard = lazy(() => import('@/components/OptimizedInteractiveBoard'));
-
-
-
-
 
 export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -73,7 +70,7 @@ export default function Home() {
       <SidebarProvider defaultOpen={true}>
         <div className="flex h-screen antialiased text-foreground">
           <Sidebar
-            width="w-80"
+            className="w-80"
             side="left"
             variant="inset"
             collapsible="icon"

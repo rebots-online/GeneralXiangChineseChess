@@ -1,3 +1,4 @@
+
 import {
   Board,
   Piece,
@@ -10,6 +11,9 @@ import {
   getValidMoves,
   initializeBoard
 } from './pieces';
+
+// Re-export the Piece type for components that import from gameState
+export type { Piece };
 
 // Define draw conditions
 export enum DrawReason {

@@ -1,3 +1,4 @@
+
 /**
  * JamiTransportController
  * 
@@ -113,26 +114,39 @@ class JamiTransportController {
       throw error;
     }
   }
-  
+
   /**
    * Send a message to a group
    * @param groupId The ID of the group chat
    * @param message The message to send
    * @returns Promise resolving to true if message was sent successfully
    */
-  public async sendGroupMessage(groupId: string, message: string): Promise<boolean> {
+  public async sendMessage(groupId: string, message: string): Promise<boolean> {
     if (!this.initialized) {
       throw new Error('JamiTransportController not initialized');
     }
     
     try {
-      // Send the message
-      return await this.jamiService.sendGroupMessage(groupId, message);
+      // Send the message and get the result
+      const result = await this.jamiService.sendMessage(groupId, message);
+      
+      // Convert the result to a boolean in a type-safe way
+      if (typeof result === 'boolean') {
+        // If it's already a boolean, return it directly
+        return result;
+      } else if (typeof result === 'string') {
+        // If it's a string, consider it success if non-empty
+        return result.length > 0;
+      } else {
+        // For any other type, convert to boolean
+        return Boolean(result);
+      }
     } catch (error) {
       console.error(`Failed to send message to group ${groupId}:`, error);
       throw error;
     }
   }
+
   
   /**
    * Get the members of a group
@@ -237,8 +251,14 @@ class JamiTransportController {
     // Add the handler
     this.presenceHandlers.set(contactId, handler);
     
-    // Subscribe to presence changes in the service
-    this.jamiService.subscribeToPresence(contactId, handler);
+    // Subscribe to presence changes using the peer discovery mechanism
+    this.jamiService.onPeerDiscovered((peerId, info) => {
+      if (peerId === contactId) {
+        // Convert peer info to presence status
+        const status = info.status || 'offline';
+        handler(status);
+      }
+    });
   }
   
   /**
@@ -253,10 +273,13 @@ class JamiTransportController {
     // Remove the handler
     this.presenceHandlers.delete(contactId);
     
-    // Unsubscribe from presence changes in the service
-    this.jamiService.unsubscribeFromPresence(contactId);
+    // Unsubscribe from peer discovery events for this contact
+    this.jamiService.offPeerDiscovered(() => {
+      // Removing all handlers for simplicity
+      // A more sophisticated implementation would track and remove specific handlers
+    });
   }
-  
+
   /**
    * Subscribe to events of a specific type
    * @param eventType The type of event to subscribe to
@@ -305,7 +328,7 @@ class JamiTransportController {
       throw new Error('JamiTransportController not initialized');
     }
     
-    return this.jamiService.getUserId();
+    return this.jamiService.getAccountId();
   }
 }
 

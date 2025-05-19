@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useWalkthrough } from '@/contexts/WalkthroughContext';
+import { useWalkthrough, WalkthroughStep } from '@/contexts/WalkthroughContext';
 
 export interface TutorialCardProps {
   title: string;
@@ -19,7 +20,7 @@ const TutorialCard: React.FC<TutorialCardProps> = ({ title, description, tutoria
     setIsLoading(true);
 
     // Define walkthrough steps based on tutorial type
-    let steps = [];
+    let steps: WalkthroughStep[] = [];
 
     if (tutorialType === 'basic') {
       steps = [
