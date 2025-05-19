@@ -1,5 +1,6 @@
+
 import { Move, GameState } from '@/game/gameState';
-import { Board, Piece, PieceType, PlayerSide } from '@/game/pieces';
+import { Board, Piece, PieceType, PlayerSide, getValidMoves } from '@/game/pieces';
 import { AIPersonality } from '../AIPlayer';
 
 /**
@@ -160,4 +161,90 @@ function isInSameArea(pos1: [number, number], pos2: [number, number]): boolean {
   
   // Define "same area" as within 2 squares
   return Math.abs(row1 - row2) <= 2 && Math.abs(col1 - col2) <= 2;
+}
+
+/**
+ * Evaluates how a move aligns with a player's personality
+ * This is used with the algorithmic engine to add personality-specific preferences
+ */
+export function evaluateMoveSafety(
+  move: Move,
+  gameState: GameState,
+  personality: AIPersonality
+): number {
+  // Base safety score
+  let safetyScore = 0;
+  
+  // Adjust for piece value - more valuable pieces get more safety consideration
+  const pieceValue = getPieceValue(move.piece.type);
+  const normalizedValue = pieceValue / 100;
+  
+  // Caution: consider piece safety more for cautious personalities
+  if (personality.caution > 0.5) {
+    // Check if the move puts the piece at risk of capture
+    const isUnprotected = !isPositionProtected(move.to, move.piece.side, gameState.board);
+    const isVulnerable = canBeCaptured(move.to, move.piece.side, gameState.board);
+    
+    if (isUnprotected && isVulnerable) {
+      // Risky move - cautious personalities avoid these
+      safetyScore -= normalizedValue * personality.caution * 2;
+    } else if (isProtected(move.to, move.piece.side, gameState.board)) {
+      // Protected destination - cautious personalities prefer these
+      safetyScore += normalizedValue * personality.caution;
+    }
+  }
+  
+  // Aggression: favor attacking and capturing moves for aggressive personalities
+  if (personality.aggression > 0.5 && move.capturedPiece) {
+    // Capturing is good for aggressive personalities
+    const captureValue = getPieceValue(move.capturedPiece.type) / 100;
+    safetyScore += captureValue * personality.aggression * 1.5;
+    
+    // Even better if we can capture without risk
+    if (!canBeCaptured(move.to, move.piece.side, gameState.board)) {
+      safetyScore += captureValue * personality.aggression;
+    }
+  }
+  
+  // Consistency: favor moves that align with previous strategy
+  if (personality.consistency > 0.5) {
+    const consistencyScore = evaluateStrategyConsistency(move, gameState);
+    safetyScore += consistencyScore * personality.consistency;
+  }
+  
+  // Creativity: add randomness for creative personalities
+  if (personality.creativity > 0.5) {
+    // Add some randomization for creative personalities
+    const randomFactor = (Math.random() - 0.5) * personality.creativity;
+    safetyScore += randomFactor;
+  }
+  
+  return safetyScore;
+}
+
+/**
+ * Helper function to check if a position is protected
+ */
+function isProtected(
+  position: [number, number],
+  side: PlayerSide,
+  board: Board
+): boolean {
+  // A position is protected if multiple friendly pieces can move there
+  let protectingPieces = 0;
+  
+  board.pieces
+    .filter(p => p.side === side)
+    .forEach(piece => {
+      // Check if this friendly piece can reach the position
+      const [row, col] = position;
+      if (piece.position[0] !== row || piece.position[1] !== col) {
+        const validMoves = getValidMoves(board, piece);
+        if (validMoves.some(([r, c]) => r === row && c === col)) {
+          protectingPieces++;
+        }
+      }
+    });
+  
+  return protectingPieces >= 2; // Position is well protected if multiple pieces defend it
 }

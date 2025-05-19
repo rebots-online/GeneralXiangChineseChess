@@ -1,9 +1,9 @@
+
 import { GameState, Move } from '@/game/gameState';
 import { PlayerSide, Board, Piece, PieceType, getValidMoves } from '@/game/pieces';
 import { scoreMovesByPersonality } from './moves/personalityAdjustments';
-import { analyzePosition, evaluatePosition, GameAnalysis } from './analysis/gameStateAnalysis';
-import { suggestMove, SuggestMoveInput } from './flows/suggest-move';
-import { analyzeGameState, AnalyzeGameStateInput } from './flows/analyze-game-state';
+import { evaluatePosition } from './analysis/gameStateAnalysis';
+import { AlgorithmicEngine, DifficultyLevel } from './engine';
 
 export interface AIPlayerConfig {
   side: PlayerSide;
@@ -23,13 +23,22 @@ export class AIPlayer {
   private difficulty: 'easy' | 'medium' | 'hard';
   private personality: AIPersonality;
   private thinkingTimeMs: number;
-  private lastAnalysis: GameAnalysis | null = null;
+  private engine: AlgorithmicEngine;
+  private isThinking: boolean = false;
+  private lastAnalysis: any = null; // Store the last position analysis
+  private lastGameState: GameState | null = null; // Store the most recent game state
 
   constructor(config: AIPlayerConfig) {
     this.side = config.side;
     this.difficulty = config.difficulty;
     this.personality = config.personality ?? this.generateDefaultPersonality();
     this.thinkingTimeMs = this.calculateThinkingTime();
+    
+    // Initialize the algorithmic engine with appropriate difficulty level
+    this.engine = new AlgorithmicEngine(
+      this.mapDifficultyToEngineLevel(this.difficulty),
+      true // Use alpha-beta pruning for better performance
+    );
   }
 
   private generateDefaultPersonality(): AIPersonality {
@@ -44,9 +53,9 @@ export class AIPlayer {
   private calculateThinkingTime(): number {
     // Base thinking time based on difficulty
     const baseTime = {
-      easy: 1000,
-      medium: 2500,
-      hard: 4000,
+      easy: 500,
+      medium: 1000,
+      hard: 1500,
     }[this.difficulty];
 
     // Add random variation based on personality traits
@@ -63,108 +72,60 @@ export class AIPlayer {
     return baseTime + randomFactor + speedAdjustment;
   }
 
-  private async getGameStateNotation(gameState: GameState): Promise<string> {
-    // Convert game state to a notation that Genkit can understand
-    // This is a simplified version - implement full notation if needed
-    return JSON.stringify({
-      board: gameState.board.pieces.map(p => ({
-        type: p.type,
-        side: p.side,
-        position: p.position,
-      })),
-      currentTurn: gameState.currentTurn,
-      moveHistory: gameState.moveHistory,
-    });
-  }
-
-  private serializeMoveHistory(moves: Move[]): string {
-    // Convert move history to a readable format
-    return moves.map(m => m.notation).join(' ');
-  }
-
-  private async analyzeAndSelectMove(gameState: GameState): Promise<Move | null> {
-    try {
-      // Get AI analysis of the position
-      const { analysis, suggestedMove } = await analyzePosition(gameState, this.side, this.difficulty);
-      this.lastAnalysis = analysis;
-
-      // Generate and score all valid moves
-      const allMoves: Move[] = [];
-      const pieces = gameState.board.pieces.filter(p => p.side === this.side);
-      
-      for (const piece of pieces) {
-        const validMoves = getValidMoves(gameState.board, piece);
-        for (const [toRow, toCol] of validMoves) {
-          const targetPiece = gameState.board.pieces.find(
-            p => p.position[0] === toRow && p.position[1] === toCol
-          ) || null;
-          
-          allMoves.push({
-            piece,
-            from: piece.position,
-            to: [toRow, toCol],
-            capturedPiece: targetPiece,
-            notation: this.generateMoveNotation(piece, [toRow, toCol], targetPiece),
-          });
-        }
-      }
-
-      if (allMoves.length === 0) {
-        return null;
-      }
-
-      // Score moves based on both personality and position evaluation
-      const scoredMoves = allMoves.map(move => {
-        // Get base score from personality evaluation
-        const personalityScore = scoreMovesByPersonality([move], this.personality, gameState)[0].score;
-        
-        // Simulate the move and evaluate the resulting position
-        const simulatedState = this.simulateMove(gameState, move);
-        const positionScore = evaluatePosition(simulatedState, this.side);
-        
-        // Weight the scores based on difficulty
-        const weights = {
-          easy: { personality: 0.7, position: 0.3 },
-          medium: { personality: 0.5, position: 0.5 },
-          hard: { personality: 0.3, position: 0.7 },
-        }[this.difficulty];
-
-        // Calculate final score
-        const finalScore = (
-          personalityScore * weights.personality +
-          positionScore * weights.position
-        );
-
-        return { move, score: finalScore };
-      });
-
-      // Apply difficulty-based move selection
-      const thresholds = {
-        easy: 0.7,
-        medium: 0.9,
-        hard: 0.95,
-      };
-
-      // If we have a suggested move from analysis, consider it
-      if (suggestedMove) {
-        const suggestedMoveScore = scoredMoves.find(
-          m => this.isSameMove(m.move, suggestedMove)
-        );
-        if (suggestedMoveScore && Math.random() < thresholds[this.difficulty]) {
-          return suggestedMove;
-        }
-      }
-
-      // Select move based on difficulty threshold
-      return this.selectMoveByScore(scoredMoves, thresholds[this.difficulty]);
-    } catch (error) {
-      console.error('Error analyzing position:', error);
-      return null;
+  /**
+   * Maps the user-facing difficulty level to the engine's internal difficulty level
+   */
+  private mapDifficultyToEngineLevel(difficulty: 'easy' | 'medium' | 'hard'): DifficultyLevel {
+    switch (difficulty) {
+      case 'easy':
+        return DifficultyLevel.EASY;
+      case 'medium':
+        return DifficultyLevel.MEDIUM;
+      case 'hard':
+        return DifficultyLevel.HARD;
+      default:
+        return DifficultyLevel.MEDIUM;
     }
   }
 
   /**
-   * Select a move from scored moves based on difficulty threshold
+   * Applies personality adjustments to an array of moves with scores
+   */
+  private applyPersonalityAdjustments(
+    moves: Move[], 
+    gameState: GameState
+  ): { move: Move; score: number }[] {
+    // Get base scores from personality traits
+    const personalityScores = scoreMovesByPersonality(moves, this.personality, gameState);
+    
+    // Apply personality-based move preference
+    for (let i = 0; i < personalityScores.length; i++) {
+      const { move, score } = personalityScores[i];
+      
+      // Add personality-specific adjustments
+      if (this.personality.aggression > 0.6 && move.capturedPiece) {
+        // Aggressive personalities prefer captures
+        personalityScores[i].score += 50 * this.personality.aggression;
+      }
+      
+      if (this.personality.caution > 0.6) {
+        // Cautious personalities prefer safer moves
+        const simulatedState = this.simulateMove(gameState, move);
+        const defensiveScore = evaluatePosition(simulatedState, this.side) * 0.2;
+        personalityScores[i].score += defensiveScore * this.personality.caution;
+      }
+      
+      if (this.personality.creativity > 0.7) {
+        // Creative personalities sometimes make unexpected moves
+        personalityScores[i].score += (Math.random() - 0.5) * 30 * this.personality.creativity;
+      }
+    }
+    
+    return personalityScores;
+  }
+
+  /**
+   * Select a move from scored moves based on threshold
    */
   private selectMoveByScore(
     scoredMoves: { move: Move; score: number }[],
@@ -196,6 +157,55 @@ export class AIPlayer {
   }
 
   /**
+   * Checks if two moves are effectively the same
+   */
+  private isSameMove(move1: Move, move2: Move): boolean {
+    return move1.from[0] === move2.from[0] &&
+           move1.from[1] === move2.from[1] &&
+           move1.to[0] === move2.to[0] &&
+           move1.to[1] === move2.to[1];
+  }
+
+  /**
+   * Converts an engine Move object to a gameState-compatible Move object
+   * This ensures type compatibility between the engine and game state
+   */
+  private convertEngineMove(engineMove: any): Move | null {
+    // Ensure all required properties exist
+    if (!engineMove) return null;
+
+    // Find the captured piece if not already present
+    let capturedPiece = engineMove.capturedPiece;
+    if (capturedPiece === undefined) {
+      capturedPiece = this.findCapturedPiece(engineMove.to, engineMove.piece.side);
+    }
+    
+    // Generate notation if not already present
+    const notation = engineMove.notation || 
+      this.generateMoveNotation(engineMove.piece, engineMove.to, capturedPiece);
+    
+    // Create a new Move object that conforms to the gameState Move interface
+    return {
+      piece: engineMove.piece,
+      from: engineMove.from,
+      to: engineMove.to,
+      capturedPiece: capturedPiece,
+      notation: notation
+    };
+  }
+  
+  /**
+   * Helper function to find a captured piece at a given position
+   */
+  private findCapturedPiece(position: [number, number], side: PlayerSide): Piece | null {
+    const [row, col] = position;
+    // Find a piece at the target position that belongs to the opposite side
+    return this.lastGameState?.board.pieces.find(
+      p => p.position[0] === row && p.position[1] === col && p.side !== side
+    ) || null;
+  }
+
+  /**
    * Simulates a move and returns the resulting game state
    */
   private simulateMove(gameState: GameState, move: Move): GameState {
@@ -221,27 +231,80 @@ export class AIPlayer {
     return newState;
   }
 
-  /**
-   * Checks if two moves are effectively the same
-   */
-  private isSameMove(move1: Move, move2: Move): boolean {
-    return move1.from[0] === move2.from[0] &&
-           move1.from[1] === move2.from[1] &&
-           move1.to[0] === move2.to[0] &&
-           move1.to[1] === move2.to[1];
-  }
-
   public async selectMove(gameState: GameState): Promise<Move | null> {
-    // Simulate thinking time
-    await new Promise(resolve => setTimeout(resolve, this.thinkingTimeMs));
+    this.isThinking = true;
+    try {
+      // Realistic thinking delay
+      await new Promise<void>(resolve => setTimeout(resolve, this.thinkingTimeMs));
 
-    // Get the best move based on position analysis and personality
-    return this.analyzeAndSelectMove(gameState);
+      // First, use the engine to find the best move
+      const algorithmicMove = await this.engine.findBestMove(gameState);
+      if (!algorithmicMove) {
+        return null;
+      }
+
+      // Generate all valid moves to apply personality adjustments
+      const allMoves: Move[] = [];
+      const pieces = gameState.board.pieces.filter(p => p.side === this.side);
+      for (const piece of pieces) {
+        const validMoves = getValidMoves(gameState.board, piece);
+        for (const [toRow, toCol] of validMoves) {
+          const targetPiece = gameState.board.pieces.find(
+            p => p.position[0] === toRow && p.position[1] === toCol
+          ) || null;
+          
+          allMoves.push({
+            piece,
+            from: piece.position,
+            to: [toRow, toCol],
+            capturedPiece: targetPiece,
+            notation: this.generateMoveNotation(piece, [toRow, toCol], targetPiece),
+          });
+        }
+      }
+      
+      // Apply personality adjustments to all moves
+      const scoredMoves = this.applyPersonalityAdjustments(allMoves, gameState);
+      scoredMoves.sort((a, b) => b.score - a.score);
+
+      // Determine how likely we are to pick the algorithmic (best) move
+      const bestMoveThresholds = {
+        easy: 0.5,
+        medium: 0.75,
+        hard: 0.9,
+      };
+      const threshold = bestMoveThresholds[this.difficulty];
+
+
+      // Store the current game state for future reference
+      this.lastGameState = gameState;
+      
+      // Check if we should use the algorithmic best move or a personality-influenced move
+      if (Math.random() < threshold) {
+        // Use the algorithmic best move with proper type conversion
+
+        const convertedMove = algorithmicMove ? this.convertEngineMove(algorithmicMove) : null;
+        return convertedMove;
+    
+      } else {
+        // Pick from top 3 personality-scored moves
+        const topN = Math.min(3, scoredMoves.length);
+        const selectedIndex = Math.floor(Math.random() * topN);
+        return scoredMoves[selectedIndex].move;
+      }
+    
+    } finally {
+      // Clear thinking flag when done
+      this.isThinking = false;
+    }
   }
-
+    
   public setDifficulty(difficulty: 'easy' | 'medium' | 'hard'): void {
     this.difficulty = difficulty;
     this.thinkingTimeMs = this.calculateThinkingTime();
+    
+    // Update the engine's difficulty level
+    this.engine.setDifficulty(this.mapDifficultyToEngineLevel(difficulty));
   }
 
   public setPersonality(personality: Partial<AIPersonality>): void {
@@ -250,5 +313,12 @@ export class AIPlayer {
       ...personality,
     };
     this.thinkingTimeMs = this.calculateThinkingTime();
+  }
+  
+  /**
+   * Returns whether the AI is currently "thinking" (calculating its next move)
+   */
+  public isCalculating(): boolean {
+    return this.isThinking || this.engine.isThinking();
   }
 }

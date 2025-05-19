@@ -3,6 +3,16 @@ import type { NextConfig } from 'next';
 
 // Environment configuration helper
 const isProd = process.env.NODE_ENV === 'production';
+const isDebug = process.env.DEBUG_BUILD === 'true';
+
+// Add build diagnostics for debugging
+if (isDebug) {
+  console.log('Next.js Build Configuration:');
+  console.log(`- Environment: ${isProd ? 'production' : 'development'}`);
+  console.log(`- TypeScript Errors: ${isProd ? 'ignored' : 'enforced'}`);
+  console.log(`- ESLint: ${isProd ? 'ignored' : 'enforced'}`);
+  console.log('- Output Mode: standalone');
+}
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -38,8 +48,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Optimize output for production - standalone mode is ideal for containerized deployments
   output: 'standalone',
-  // Enable SWC minification for faster builds
-  swcMinify: true,
+  // swcMinify option has been removed as it's deprecated in Next.js 15.2.3 (now enabled by default)
   // Configure headers for better security and performance
   headers: async () => {
     return [
@@ -118,7 +127,18 @@ const nextConfig: NextConfig = {
     
     // Game configuration
     NEXT_PUBLIC_ENABLE_DEBUG: process.env.NEXT_PUBLIC_ENABLE_DEBUG === 'true' ? 'true' : 'false',
+    // Debug build information
+    NEXT_PUBLIC_BUILD_DIAGNOSTICS: isDebug ? 'true' : 'false',
   },
 };
+
+// Add comprehensive debug output when requested
+if (isDebug) {
+  console.log('Next.js Config Details:');
+  console.log('- React Strict Mode:', nextConfig.reactStrictMode);
+  console.log('- Output Mode:', nextConfig.output);
+  console.log('- Image Domains:', JSON.stringify(nextConfig.images?.remotePatterns));
+  console.log('- Environment Variables:', Object.keys(nextConfig.env || {}).join(', '));
+}
 
 export default nextConfig;

@@ -1,13 +1,23 @@
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-04-30.basil'
-});
-
 export async function POST() {
   try {
+    // Initialize Stripe inside the route handler
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.log('Stripe API key not configured, subscription reactivation unavailable');
+      return NextResponse.json(
+        { error: 'Subscription management is currently unavailable' },
+        { status: 503 }
+      );
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-04-30.basil'
+    });
+
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('session_token');
 
@@ -23,7 +33,7 @@ export async function POST() {
     const userId = 'current-user-id';
 
     // Get the customer's Stripe subscription
-    const subscription = await getStripeSubscription(userId);
+    const subscription = await getStripeSubscription(userId, stripe);
     if (!subscription) {
       return NextResponse.json(
         { error: 'No subscription found' },
@@ -64,7 +74,9 @@ interface ExtendedSubscription extends Stripe.Subscription {
   customer: string;
 }
 
-async function getStripeSubscription(userId: string): Promise<ExtendedSubscription | null> {
+
+async function getStripeSubscription(userId: string, stripe: Stripe): Promise<ExtendedSubscription | null> {
+    
   try {
     // Get the customer ID from your database
     const customerId = await getStripeCustomerId(userId);

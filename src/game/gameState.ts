@@ -14,6 +14,8 @@ import {
 
 // Re-export the Piece type for components that import from gameState
 export type { Piece };
+// Re-export the PlayerSide type for components that import from gameState
+export type { PlayerSide };
 
 // Define draw conditions
 export enum DrawReason {
@@ -149,7 +151,9 @@ function recreateBoardState(gameState: GameState, moveIndex: number): Board {
 }
 
 // Helper function to apply a move to a board
-function applyMove(board: Board, move: Move): void {
+
+export function applyMove(board: Board, move: Move): void {
+    
   const pieceIndex = board.pieces.findIndex(
     p => p.position[0] === move.from[0] && p.position[1] === move.from[1]
   );
@@ -437,3 +441,4 @@ export function undoMove(gameState: GameState): GameState {
     checkmate: false, // If we're undoing, there's no checkmate
   };
 }
+
