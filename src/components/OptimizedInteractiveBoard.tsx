@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Undo, Sun, Moon, RotateCcw, Save, Volume2 } from 'lucide-react';
@@ -132,7 +132,7 @@ const useDragState = () => {
 };
 
 // Main component
-const OptimizedInteractiveBoard: React.FC = () => {
+const OptimizedInteractiveBoard = forwardRef((props, ref) => {
   // Helper function to get board coordinates from mouse position
   const getBoardCoordinates = useCallback((clientX: number, clientY: number): [number, number] | null => {
     const boardElement = document.querySelector('.board-container');
@@ -437,31 +437,46 @@ const OptimizedInteractiveBoard: React.FC = () => {
 
   // Handle save game with useCallback
   const handleSaveGame = useCallback(() => {
-    // If there are moves in the history, allow saving
     if (gameState.moveHistory.length > 0) {
-      const gameData = JSON.stringify(gameState);
-      const timestamp = new Date().toISOString().replace(/:/g, '-');
-      const filename = `xiangqi-game-${timestamp}.json`;
-
-      // Create a blob and download link
-      const blob = new Blob([gameData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-
-      // Clean up
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
+      try {
+        const gameData = JSON.stringify(gameState);
+        localStorage.setItem('savedXiangqiGame', gameData);
+        toast({ title: 'Game Saved', description: 'Your game has been saved to local storage.' });
+        Feedback.buttonClick();
+      } catch (error) {
+        console.error("Error saving game to local storage:", error);
+        toast({ title: 'Error Saving Game', description: 'Could not save game to local storage.', variant: 'destructive' });
+      }
     } else {
-      // Show dialog that there's nothing to save
       setShowSaveGameDialog(true);
     }
-  }, [gameState]);
+  }, [gameState, toast]);
+
+  // Handle load game with useCallback
+  const handleLoadGame = useCallback(() => {
+    try {
+      const savedGameData = localStorage.getItem('savedXiangqiGame');
+      if (savedGameData) {
+        const loadedGameState = JSON.parse(savedGameData);
+        // TODO: Add validation for the loaded game state structure
+        setGameState(loadedGameState);
+        toast({ title: 'Game Loaded', description: 'Your game has been loaded from local storage.' });
+        Feedback.gameStart(); // Or a specific load sound
+      } else {
+        toast({ title: 'No Saved Game Found', description: 'Could not find a saved game in local storage.', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error("Error loading game from local storage:", error);
+      toast({ title: 'Error Loading Game', description: 'Could not load game from local storage.', variant: 'destructive' });
+    }
+  }, [setGameState, toast]);
+
+  // Expose functions to parent component via ref
+  useImperativeHandle(ref, () => ({
+    resetGame: handleNewGame,
+    saveGame: handleSaveGame,
+    loadGame: handleLoadGame,
+  }));
 
   // Handle sound settings with useCallback
   const handleSoundSettings = useCallback(() => {
@@ -758,4 +773,4 @@ const OptimizedInteractiveBoard: React.FC = () => {
   );
 };
 
-export default OptimizedInteractiveBoard;
+export default memo(OptimizedInteractiveBoard);
