@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import AuthService from '@/services/AuthService';
+import ProfileService from '@/services/ProfileService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,22 +32,21 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
     
     try {
       setLoading(true);
-      
-      // Simulate authentication delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, this would call your auth service
-      // For now, just simulate a successful login
-      
-      // Play success sound
+
+      const auth = AuthService.getInstance();
+      const user = await auth.signInWithEmailPassword(email, password);
+      const profile = ProfileService.getProfile(user.id);
+      if (!profile) {
+        ProfileService.saveProfile({ userId: user.id, displayName: user.displayName || user.id, email: user.email });
+      }
+
       Feedback.success();
-      
+
       toast({
         title: 'Login successful',
         description: 'You have been logged in successfully.',
       });
-      
-      // Call the onLoginSuccess callback
+
       onLoginSuccess();
     } catch (error) {
       console.error('Login failed:', error);
@@ -66,12 +67,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
   const handleAnonymousLogin = async () => {
     try {
       setLoading(true);
-      
-      // Simulate authentication delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // In a real app, this would call your auth service
-      // For now, just simulate a successful anonymous login
+
+      const auth = AuthService.getInstance();
+      await auth.signInAnonymously();
       
       // Play success sound
       Feedback.success();

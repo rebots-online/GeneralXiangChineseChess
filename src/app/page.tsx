@@ -24,6 +24,7 @@ import TutorialsDialog from '@/components/TutorialsDialog';
 import ProTipsDialog from '@/components/ProTipsDialog'; // Import ProTipsDialog
 import SettingsDialog from '@/components/SettingsDialog'; // Import SettingsDialog
 import PolicyLinks from '@/components/PolicyLinks';
+import Link from 'next/link';
 
 // Lazy load the optimized board component
 const OptimizedInteractiveBoard = lazy(() => import('@/components/OptimizedInteractiveBoard'));
@@ -253,6 +254,15 @@ export default function Home() {
                         Settings
                       </span>
                     </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <Link href="/profile" className="flex items-center gap-2" title="Profile">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                      Profile
+                    </Link>
                   </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroup>
