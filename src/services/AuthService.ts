@@ -1,3 +1,5 @@
+import ProfileService, { UserProfile } from './ProfileService';
+
 // User authentication states
 export enum AuthState {
   UNKNOWN = 'unknown',
@@ -45,7 +47,13 @@ class AuthService {
       // Set the current user
       this.currentUser = user;
       this.authState = AuthState.AUTHENTICATED;
-      
+
+      const profile: UserProfile = {
+        userId: user.id,
+        displayName: user.id
+      };
+      ProfileService.saveProfile(profile);
+
       return user;
     } catch (error) {
       console.error('Failed to sign in anonymously:', error);
@@ -77,7 +85,15 @@ class AuthService {
       // Set the current user
       this.currentUser = user;
       this.authState = AuthState.AUTHENTICATED;
-      
+
+      const existing = ProfileService.getProfile(userId);
+      const profile: UserProfile = existing || {
+        userId,
+        displayName: user.displayName || userId,
+        email
+      };
+      ProfileService.saveProfile(profile);
+
       return user;
     } catch (error) {
       console.error('Failed to sign in with email and password:', error);
