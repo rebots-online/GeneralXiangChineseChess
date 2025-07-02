@@ -771,6 +771,6 @@ const OptimizedInteractiveBoard = forwardRef((props, ref) => {
       </Dialog>
     </div>
   );
-};
+});
 
 export default memo(OptimizedInteractiveBoard);
