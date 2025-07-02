@@ -11,6 +11,7 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^lucide-react$': '<rootDir>/node_modules/lucide-react/dist/cjs/lucide-react.js',
   },
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
@@ -20,7 +21,7 @@ const customJestConfig = {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
   transformIgnorePatterns: [
-    '/node_modules/',
+    'node_modules/(?!(lucide-react)/)',
     '^.+\\.module\\.(css|sass|scss)$',
   ],
   collectCoverage: true,
@@ -28,6 +29,7 @@ const customJestConfig = {
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
     '!src/**/*.stories.{js,jsx,ts,tsx}',
+    '!src/components/OldInteractiveBoard.tsx',
     '!**/node_modules/**',
   ],
 };

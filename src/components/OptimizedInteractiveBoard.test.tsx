@@ -65,7 +65,7 @@ describe('OptimizedInteractiveBoard Game State Management', () => {
   // This is a simplified way, actual implementation might need changes in OptimizedInteractiveBoard.tsx
   // to expose getGameState via useImperativeHandle for testing.
   // For now, we assume such a method is exposed. If not, tests would need to rely on UI.
-  const getBoardState = ()_ => {
+  const getBoardState = () => {
       if (boardRef.current && typeof boardRef.current.getGameState === 'function') {
           return boardRef.current.getGameState();
       }
