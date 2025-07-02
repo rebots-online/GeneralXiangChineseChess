@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast"; // Assuming this hook exists
 import { Feedback, initAudio } from "@/lib/sound"; // Assuming sound feedback functions exist
 import SoundSettings from "@/components/SoundSettings"; // Assuming this component exists
+import LocalMultiplayer from '@/services/LocalMultiplayer';
 import {
   GameState,
   GameStatus,
@@ -451,21 +452,19 @@ const InteractiveBoard: React.FC = () => {
   };
 
   const confirmJoinGame = (codeToJoin: string) => {
-    // TODO: Implement actual Jami/multiplayer connection logic here
     console.log(`Attempting to join game with code: ${codeToJoin}`);
     Feedback.buttonClick();
+    LocalMultiplayer.joinGame(codeToJoin);
     toast({ title: "Joining Game...", description: `Connecting with code ${codeToJoin}...`, duration: 3000 });
-    // Close dialog after attempting connection (or on success)
     setShowJoinGameDialog(false);
-    setGameCode(''); // Clear input after use
+    setGameCode('');
   };
 
   const confirmHostGame = () => {
-    // TODO: Implement actual Jami/multiplayer hosting logic here
     console.log(`Attempting to host game with code: ${generatedGameCode}`);
     Feedback.buttonClick();
+    LocalMultiplayer.hostGame(generatedGameCode);
     toast({ title: "Hosting Game...", description: `Waiting for opponent with code ${generatedGameCode}...`, duration: 3000 });
-    // Close dialog after starting host process
     setShowHostGameDialog(false);
   };
 
