@@ -24,7 +24,13 @@ export default function ProfilePage() {
   }, []);
 
   if (!auth.isAuthenticated()) {
-    return <p className="p-4">Please sign in first.</p>;
+    useEffect(() => {
+      const id = setTimeout(() => {
+        window.location.href = '/';
+      }, 3000);
+      return () => clearTimeout(id);
+    }, []);
+    return <p className="p-4">Please sign in first. Returning you to game...</p>;
   }
 
   const save = () => {
