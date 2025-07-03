@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useRef } from 'react';
 
 // Define the step interface for walkthrough
 export interface WalkthroughStep {
@@ -16,7 +16,7 @@ interface WalkthroughContextType {
   isActive: boolean;
   currentStep: number;
   steps: WalkthroughStep[];
-  startWalkthrough: (steps: WalkthroughStep[]) => void;
+  startWalkthrough: (steps: WalkthroughStep[], onComplete?: () => void) => void;
   nextStep: () => void;
   prevStep: () => void;
   endWalkthrough: () => void;
@@ -40,14 +40,16 @@ export const WalkthroughProvider: React.FC<WalkthroughProviderProps> = ({ childr
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState<WalkthroughStep[]>([]);
+  const onCompleteRef = useRef<(() => void) | undefined>();
 
   // Start a new walkthrough with the provided steps
-  const startWalkthrough = (newSteps: WalkthroughStep[]) => {
+  const startWalkthrough = (newSteps: WalkthroughStep[], onComplete?: () => void) => {
     if (newSteps.length === 0) return;
 
     setSteps(newSteps);
     setCurrentStep(0);
     setIsActive(true);
+    onCompleteRef.current = onComplete;
 
     // We're not adding a class that prevents scrolling
     // This allows users to scroll to see the board during the walkthrough
@@ -74,6 +76,11 @@ export const WalkthroughProvider: React.FC<WalkthroughProviderProps> = ({ childr
     setIsActive(false);
     setSteps([]);
     setCurrentStep(0);
+
+    if (onCompleteRef.current) {
+      onCompleteRef.current();
+      onCompleteRef.current = undefined;
+    }
 
     // Remove any highlighted elements
     const highlightedElements = document.querySelectorAll('.highlighted');

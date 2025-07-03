@@ -11,7 +11,11 @@ import {
 import { Button } from '@/components/ui/button';
 import TutorialCard from '@/components/TutorialCard';
 
-const TutorialsDialog = forwardRef((props, ref) => {
+interface TutorialsDialogProps {
+  onMiniChallengeStart?: (type: 'basic' | 'opening' | 'advanced') => void;
+}
+
+const TutorialsDialog = forwardRef<HTMLDivElement, TutorialsDialogProps>(({ onMiniChallengeStart }, ref) => {
   const [open, setOpen] = useState(false);
 
   useImperativeHandle(ref, () => ({ setOpen }));
@@ -30,16 +34,19 @@ const TutorialsDialog = forwardRef((props, ref) => {
             title="Basic Rules"
             description="Learn the fundamental rules of Xiangqi, including piece movements and board setup."
             tutorialType="basic"
+            onMiniChallengeStart={onMiniChallengeStart}
           />
           <TutorialCard
             title="Opening Strategies"
             description="Discover effective opening strategies to gain an early advantage."
             tutorialType="opening"
+            onMiniChallengeStart={onMiniChallengeStart}
           />
           <TutorialCard
             title="Advanced Tactics"
             description="Explore advanced tactics and strategies to outmaneuver your opponents."
             tutorialType="advanced"
+            onMiniChallengeStart={onMiniChallengeStart}
           />
         </div>
         <div className="flex justify-end mt-4">

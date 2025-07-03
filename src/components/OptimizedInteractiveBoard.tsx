@@ -2,10 +2,11 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, memo, useRef, forwardRef, useImperativeHandle } from 'react';
+import { AIPlayer } from '@/ai/AIPlayer';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Undo, Sun, Moon, RotateCcw, Save, Volume2 } from 'lucide-react';
-import { GameState, GameStatus, initializeGameState, startGame, makeMove, selectPiece, deselectPiece, undoMove } from '@/game/gameState';
+import { GameState, GameStatus, initializeGameState, startGame, makeMove, selectPiece, deselectPiece, undoMove, isValidGameState } from '@/game/gameState';
 import { Board, Piece, PlayerSide } from '@/game/pieces';
 import { Feedback, loadSoundSettings, setSoundEnabled, setHapticsEnabled, setMasterVolume } from '@/lib/sound';
 import { useToast } from '@/hooks/use-toast';
@@ -164,6 +165,8 @@ const OptimizedInteractiveBoard = forwardRef((props, ref) => {
   const [soundVolume, setSoundVolume] = useState<number>(0.7);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [hapticsEnabled, setHapticsEnabled] = useState<boolean>(true);
+  const [aiPlayer, setAiPlayer] = useState<AIPlayer | null>(null);
+  const [aiEnabled, setAiEnabled] = useState<boolean>(false);
   const { toast } = useToast();
 
   const cellSize = 50; // Size of each cell (distance between intersections)
@@ -421,9 +424,25 @@ const OptimizedInteractiveBoard = forwardRef((props, ref) => {
   const handleNewGame = useCallback(() => {
     const newGameState = startGame(initializeGameState());
     setGameState(newGameState);
+    setAiPlayer(null);
+    setAiEnabled(false);
     // Play game start sound
     Feedback.gameStart();
   }, []);
+
+  // Start a new game against the AI
+  const startAIGame = useCallback((difficulty: 'easy' | 'medium' | 'hard' = 'easy') => {
+    const newGameState = startGame(initializeGameState());
+    setGameState(newGameState);
+    setAiPlayer(new AIPlayer({ side: PlayerSide.BLACK, difficulty }));
+    setAiEnabled(true);
+    Feedback.gameStart();
+  }, []);
+
+  // Start a mini challenge after tutorials
+  const startMiniChallenge = useCallback((difficulty: 'easy' | 'medium' | 'hard' = 'easy') => {
+    startAIGame(difficulty);
+  }, [startAIGame]);
 
   // Handle theme toggle with useCallback
   const handleThemeToggle = useCallback(() => {
@@ -458,10 +477,15 @@ const OptimizedInteractiveBoard = forwardRef((props, ref) => {
       const savedGameData = localStorage.getItem('savedXiangqiGame');
       if (savedGameData) {
         const loadedGameState = JSON.parse(savedGameData);
-        // TODO: Add validation for the loaded game state structure
-        setGameState(loadedGameState);
-        toast({ title: 'Game Loaded', description: 'Your game has been loaded from local storage.' });
-        Feedback.gameStart(); // Or a specific load sound
+        if (isValidGameState(loadedGameState)) {
+          setGameState(loadedGameState);
+          setAiPlayer(null);
+          setAiEnabled(false);
+          toast({ title: 'Game Loaded', description: 'Your game has been loaded from local storage.' });
+          Feedback.gameStart();
+        } else {
+          toast({ title: 'Invalid Save Data', description: 'Saved game data was invalid.', variant: 'destructive' });
+        }
       } else {
         toast({ title: 'No Saved Game Found', description: 'Could not find a saved game in local storage.', variant: 'destructive' });
       }
@@ -471,11 +495,25 @@ const OptimizedInteractiveBoard = forwardRef((props, ref) => {
     }
   }, [setGameState, toast]);
 
+  // Trigger AI move when it's the AI's turn
+  useEffect(() => {
+    if (aiEnabled && aiPlayer && gameState.currentTurn === aiPlayer['side'] && gameState.gameStatus === GameStatus.IN_PROGRESS) {
+      aiPlayer.selectMove(gameState).then(move => {
+        if (move) {
+          const newState = makeMove(gameState, move.piece, move.to[0], move.to[1]);
+          setGameState(newState);
+        }
+      });
+    }
+  }, [gameState, aiEnabled, aiPlayer]);
+
   // Expose functions to parent component via ref
   useImperativeHandle(ref, () => ({
     resetGame: handleNewGame,
     saveGame: handleSaveGame,
     loadGame: handleLoadGame,
+    startAIGame,
+    startMiniChallenge,
   }));
 
   // Handle sound settings with useCallback
