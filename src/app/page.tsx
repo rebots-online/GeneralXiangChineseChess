@@ -34,6 +34,8 @@ interface OptimizedInteractiveBoardHandle {
   resetGame: () => void;
   saveGame: () => void;
   loadGame: () => void;
+  startAIGame: (difficulty: 'easy' | 'medium' | 'hard') => void;
+  startMiniChallenge: (difficulty: 'easy' | 'medium' | 'hard') => void;
 }
 
 export default function Home() {
@@ -152,6 +154,19 @@ export default function Home() {
                           <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" />
                         </svg>
                         Load Game
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton tooltip="Play vs AI" onClick={() => boardRef.current?.startAIGame('easy')}>
+                      <span className="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bot">
+                          <rect width="20" height="12" x="2" y="8" rx="2"/>
+                          <path d="M12 2v4" />
+                          <path d="M8 12v2" />
+                          <path d="M16 12v2" />
+                        </svg>
+                        Play vs AI
                       </span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -316,7 +331,7 @@ export default function Home() {
           {/* Dialogs */}
           <AboutDialog ref={aboutDialogRef} />
           <HelpDialog ref={helpDialogRef} />
-          <TutorialsDialog ref={tutorialsDialogRef} />
+          <TutorialsDialog ref={tutorialsDialogRef} onMiniChallengeStart={(type) => boardRef.current?.startMiniChallenge('easy')} />
           <ProTipsDialog ref={proTipsDialogRef} /> {/* Add ProTipsDialog instance */}
           <SettingsDialog ref={settingsDialogRef} /> {/* Add SettingsDialog instance */}
         </div>
