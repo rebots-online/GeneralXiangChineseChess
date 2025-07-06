@@ -10,9 +10,10 @@ export interface TutorialCardProps {
   title: string;
   description: string;
   tutorialType: 'basic' | 'opening' | 'advanced';
+  onMiniChallengeStart?: (type: 'basic' | 'opening' | 'advanced') => void;
 }
 
-const TutorialCard: React.FC<TutorialCardProps> = ({ title, description, tutorialType }) => {
+const TutorialCard: React.FC<TutorialCardProps> = ({ title, description, tutorialType, onMiniChallengeStart }) => {
   const { startWalkthrough } = useWalkthrough();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -241,7 +242,11 @@ const TutorialCard: React.FC<TutorialCardProps> = ({ title, description, tutoria
 
     // Start the walkthrough after a short delay
     setTimeout(() => {
-      startWalkthrough(steps);
+      startWalkthrough(steps, () => {
+        if (onMiniChallengeStart) {
+          onMiniChallengeStart(tutorialType);
+        }
+      });
       setIsLoading(false);
     }, 500);
   };

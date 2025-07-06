@@ -442,3 +442,15 @@ export function undoMove(gameState: GameState): GameState {
   };
 }
 
+// Validate a loaded game state object
+export function isValidGameState(data: any): data is GameState {
+  return (
+    data &&
+    typeof data === 'object' &&
+    data.board &&
+    Array.isArray(data.board.pieces) &&
+    typeof data.currentTurn === 'string' &&
+    Array.isArray(data.moveHistory)
+  );
+}
+
