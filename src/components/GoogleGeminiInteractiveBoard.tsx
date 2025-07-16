@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast"; // Assuming this hook exists
 import { Feedback, initAudio } from "@/lib/sound"; // Assuming sound feedback functions exist
 import SoundSettings from "@/components/SoundSettings"; // Assuming this component exists
-import LocalMultiplayer from '@/services/LocalMultiplayer';
+import LocalMultiplayer, { LocalGameMessage } from '@/services/LocalMultiplayer';
 import {
   GameState,
   GameStatus,
@@ -142,6 +142,10 @@ const PalatialAnchors: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) => {
 const InteractiveBoard: React.FC = () => {
   // --- State ---
   const [gameState, setGameState] = useState<GameState>(() => initializeGameState());
+  const gameStateRef = useRef(gameState);
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showNewGameDialog, setShowNewGameDialog] = useState(false);
   const [showSaveGameDialog, setShowSaveGameDialog] = useState(false);
@@ -163,6 +167,10 @@ const InteractiveBoard: React.FC = () => {
 
   const { toast } = useToast();
 
+  const broadcastState = (state: GameState) => {
+    LocalMultiplayer.send({ type: 'custom', payload: { action: 'sync-state', state } });
+  };
+
   // --- Effects ---
 
   // Initialize theme, load names, setup audio interaction listener
@@ -183,11 +191,12 @@ const InteractiveBoard: React.FC = () => {
     setBlackPlayerName(savedBlackName || 'Blue Player');
 
     // Start the game automatically with default or saved names
-    if (gameState.gameStatus === GameStatus.NOT_STARTED) {
-      const newGameState = startGame(initializeGameState());
-      setGameState(newGameState);
-      Feedback.gameStart();
-    }
+      if (gameState.gameStatus === GameStatus.NOT_STARTED) {
+        const newGameState = startGame(initializeGameState());
+        setGameState(newGameState);
+        broadcastState(newGameState);
+        Feedback.gameStart();
+      }
 
     // Initialize audio on first user interaction
     const handleUserInteraction = () => {
@@ -218,6 +227,21 @@ const InteractiveBoard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
+  useEffect(() => {
+    const handleMessage = (msg: LocalGameMessage) => {
+      if (msg.type === 'join-request') {
+        toast({ title: 'Opponent Joined' });
+        broadcastState(gameStateRef.current);
+      } else if (msg.type === 'custom' && msg.payload?.action === 'sync-state') {
+        setGameState(msg.payload.state as GameState);
+      }
+    };
+    LocalMultiplayer.on(handleMessage);
+    return () => {
+      LocalMultiplayer.off(handleMessage);
+    };
+  }, [toast]);
+
   // --- Game Logic Handlers ---
 
   const handleCellClick = useCallback((visualRow: number, visualCol: number) => {
@@ -241,6 +265,7 @@ const InteractiveBoard: React.FC = () => {
         console.log(`Attempting move: ${selectedPiece.symbol} from ${selectedPiece.position} to ${targetPosition}`);
         const newGameState = makeMove(gameState, selectedPiece, targetPosition[0], targetPosition[1]);
         setGameState(newGameState);
+        broadcastState(newGameState);
 
         // Play sounds based on move result
         if (pieceAtTarget) Feedback.pieceCapture(); else Feedback.pieceMove();
@@ -252,12 +277,14 @@ const InteractiveBoard: React.FC = () => {
         console.log(`Switching selection to: ${pieceAtTarget.symbol} at ${targetPosition}`);
         const newGameState = selectPiece(gameState, targetPosition[0], targetPosition[1]);
         setGameState(newGameState);
+        broadcastState(newGameState);
         Feedback.pieceSelect();
       } else {
         // Clicked on empty square or opponent piece (not a valid move) - deselect
         console.log(`Deselecting piece: ${selectedPiece.symbol}`);
         const newGameState = deselectPiece(gameState);
         setGameState(newGameState);
+        broadcastState(newGameState);
         Feedback.toggle(); // Use a neutral sound for deselection
       }
     } else {
@@ -266,6 +293,7 @@ const InteractiveBoard: React.FC = () => {
         console.log(`Selecting piece: ${pieceAtTarget.symbol} at ${targetPosition}`);
         const newGameState = selectPiece(gameState, targetPosition[0], targetPosition[1]);
         setGameState(newGameState);
+        broadcastState(newGameState);
         Feedback.pieceSelect();
       } else {
         // Clicked on empty square or opponent piece when nothing selected
@@ -295,6 +323,7 @@ const InteractiveBoard: React.FC = () => {
     console.log(`Starting new game with Red: ${redPlayerName}, Blue: ${blackPlayerName}`);
     const newGameState = startGame(initializeGameState()); // Start fresh
     setGameState(newGameState);
+    broadcastState(newGameState);
     setShowPlayerNameDialog(false);
 
     localStorage.setItem('redPlayerName', redPlayerName);
@@ -313,6 +342,7 @@ const InteractiveBoard: React.FC = () => {
       console.log("Undoing last move");
       const newGameState = undoMove(gameState);
       setGameState(newGameState);
+      broadcastState(newGameState);
       Feedback.buttonClick(); // Or a specific undo sound
     } else {
       console.log("No moves to undo");
